@@ -22,13 +22,13 @@ General Public License.
 - In your ``urls.py`` add a pattern for ``enhydris_synoptic``; for
   example::
 
-    from django.conf.urls import include
+    from django.conf.urls import include, url
 
-    from enhydris.urls import *
+    from enhydris.urls import urlpatterns
 
     from enhydris_synoptic import urls as synoptic_urls
 
-    urlpatterns.insert(0, (r'^synoptic/', include(synoptic_urls)))
+    urlpatterns.insert(0, url(r'^synoptic/', include(synoptic_urls)))
 
 - In the Enhydris configuration directory, execute ``python manage.py
   migrate``.
