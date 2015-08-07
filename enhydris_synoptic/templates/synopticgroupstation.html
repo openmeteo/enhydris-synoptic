@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "Weather conditions at " %}{{ object.station.name }}</h1>
+  <div class="panel panel-default">
+    <div class="panel-heading">{% trans "Latest measurements" %}</div>
+    <div class="panel-body">
+      {% include "synopticgroupstation-report.html" %}
+    </div>
+  </div>
+  {% for synoptic_timeseries in object.synoptictimeseries_set.all %}
+    <h2>{{ synoptic_timeseries.timeseries.name }}</h2>
+    <img src={% url "synoptic_chart_view" synoptic_timeseries.id %}
+    <hr>
+  {% endfor %}
+{% endblock %}

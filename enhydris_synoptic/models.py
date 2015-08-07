@@ -24,6 +24,7 @@ class SynopticGroupStation(models.Model):
 
     class Meta:
         unique_together = (('synoptic_group', 'order'),)
+        ordering = ['synoptic_group', 'order']
 
     def __str__(self):
         return str(self.station)
@@ -38,4 +39,5 @@ class SynopticTimeseries(models.Model):
         unique_together = (('synoptic_group_station', 'timeseries'),
                            ('synoptic_group_station', 'order'),
                            )
+        ordering = ['synoptic_group_station', 'order']
         verbose_name_plural = 'Synoptic timeseries'

@@ -3,27 +3,11 @@
 
 {% block content %}
   <h1>{% trans "Latest measurements" %}</h1>
-  {% for station in stations %}
+  {% for object in synoptic_group_stations %}
     <div class="panel panel-default">
-      <div class="panel-heading">{{ station.name }}</div>
+      <div class="panel-heading"><a href="{% url "synoptic_station_view" object.id %}">{{ object.station.name }}</a></div>
       <div class="panel-body">
-        {% if station.error %}
-          {% blocktrans %}
-            <p>Something's wrong with the data of this report. Check if the
-              time series are all the same time step.</p>
-          {% endblocktrans %}
-        {% else %}
-          <dl class="dl-horizontal">
-            <dt>{% trans "Last update" %}</dt><dd>{{ station.last_common_date|date:"Y-m-d H:m e (O)" }}</dd>
-            <dt>&nbsp;<dt><dd></dd>
-            {% for timeseries in station.synoptic_timeseries %}
-              <dt>{{ timeseries.name }}</dt>
-              {% with precision=timeseries.precision|default:0 %}
-                <dd>{{ timeseries.value|floatformat:precision }} {{ timeseries.unit_of_measurement.symbol }}</dd>
-              {% endwith %}
-            {% endfor %}
-           </dl>
-        {% endif %}
+        {% include "synopticgroupstation-report.html" %}
       </div>
     </div>
   {% endfor %}

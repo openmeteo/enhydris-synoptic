@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hcore', '0002_auto_20150730_1114'),
+        ('hcore', '0001_initial'),
     ]
 
     operations = [
