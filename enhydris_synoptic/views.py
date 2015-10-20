@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 
+import matplotlib; matplotlib.use('AGG')  # NOQA
 import matplotlib.pyplot as plt
 import pandas as pd
 from pthelma.timeseries import Timeseries
@@ -81,12 +82,17 @@ class ChartView(SingleObjectMixin, View):
         buff = StringIO()
         ts.write(buff)
         buff.seek(0)
-        tsdata = pd.read_csv(buff, parse_dates=[0], usecols=[0, 1])[-144:]
+        tsdata = pd.read_csv(buff, parse_dates=[0], usecols=[0, 1],
+                             index_col=0, header=None)[-144:]
 
         # Create and return plot
         fig = plt.figure()
+        fig.set_dpi(100)
+        fig.set_size_inches(3.2, 2)
+        fig.subplots_adjust(left=0.10, right=0.99, bottom=0.15, top=0.97)
+        matplotlib.rcParams.update({'font.size': 7})
         ax = fig.add_subplot(1, 1, 1)
-        tsdata.plot(ax=ax)
+        tsdata.plot(ax=ax, legend=False)
         result = HttpResponse(content_type="image/png")
         fig.savefig(result)
 
