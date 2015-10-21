@@ -6,6 +6,7 @@ from django.views.generic.base import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 
 import matplotlib; matplotlib.use('AGG')  # NOQA
+from matplotlib.dates import DateFormatter, DayLocator, HourLocator
 import matplotlib.pyplot as plt
 import pandas as pd
 from pthelma.timeseries import Timeseries
@@ -85,14 +86,20 @@ class ChartView(SingleObjectMixin, View):
         tsdata = pd.read_csv(buff, parse_dates=[0], usecols=[0, 1],
                              index_col=0, header=None)[-144:]
 
-        # Create plot
+        # Setup plot
         fig = plt.figure()
         fig.set_dpi(100)
         fig.set_size_inches(3.2, 2)
         fig.subplots_adjust(left=0.10, right=0.99, bottom=0.15, top=0.97)
         matplotlib.rcParams.update({'font.size': 7})
         ax = fig.add_subplot(1, 1, 1)
-        tsdata.plot(ax=ax, legend=False)
+
+        # Draw line. We use matplotlib's plot() instead of pandas's wrapper,
+        # because otherwise there is trouble modifying the x axis labels
+        # (see http://stackoverflow.com/questions/12945971/).
+        xdata = tsdata.index.to_pydatetime()
+        ydata = tsdata.values.transpose()[0]
+        ax.plot(xdata, ydata, color='r')
 
         # Change plot limits as needed
         xmin, xmax, ymin, ymax = ax.axis()
@@ -101,6 +108,19 @@ class ChartView(SingleObjectMixin, View):
         if self.object.default_chart_max:
             ymax = max(self.object.default_chart_max, ymax)
         ax.set_ylim([ymin, ymax])
+
+        # Fill
+        ax.fill_between(xdata, ydata, ymin, color='#ffff00')
+
+        # X ticks and labels
+        ax.xaxis.set_minor_locator(HourLocator(byhour=range(0, 24, 3)))
+        ax.xaxis.set_minor_formatter(DateFormatter('%H:%M'))
+        ax.xaxis.set_major_locator(DayLocator())
+        ax.xaxis.set_major_formatter(
+            DateFormatter('\n    %Y-%m-%d $\\rightarrow$'))
+
+        # Gridlines
+        ax.grid(b=True, which='both', color='b', linestyle=':')
 
         # Return plot
         result = HttpResponse(content_type="image/png")
