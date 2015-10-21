@@ -85,7 +85,7 @@ class ChartView(SingleObjectMixin, View):
         tsdata = pd.read_csv(buff, parse_dates=[0], usecols=[0, 1],
                              index_col=0, header=None)[-144:]
 
-        # Create and return plot
+        # Create plot
         fig = plt.figure()
         fig.set_dpi(100)
         fig.set_size_inches(3.2, 2)
@@ -93,7 +93,16 @@ class ChartView(SingleObjectMixin, View):
         matplotlib.rcParams.update({'font.size': 7})
         ax = fig.add_subplot(1, 1, 1)
         tsdata.plot(ax=ax, legend=False)
+
+        # Change plot limits as needed
+        xmin, xmax, ymin, ymax = ax.axis()
+        if self.object.default_chart_min:
+            ymin = min(self.object.default_chart_min, ymin)
+        if self.object.default_chart_max:
+            ymax = max(self.object.default_chart_max, ymax)
+        ax.set_ylim([ymin, ymax])
+
+        # Return plot
         result = HttpResponse(content_type="image/png")
         fig.savefig(result)
-
         return result

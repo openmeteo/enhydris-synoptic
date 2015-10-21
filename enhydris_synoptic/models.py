@@ -1,6 +1,7 @@
 import six
 
 from django.db import models
+from django.utils.translation import ugettext as _
 
 from enhydris.hcore.models import Station, Timeseries
 
@@ -34,6 +35,14 @@ class SynopticTimeseries(models.Model):
     synoptic_group_station = models.ForeignKey(SynopticGroupStation)
     timeseries = models.ForeignKey(Timeseries)
     order = models.PositiveSmallIntegerField()
+    default_chart_min = models.FloatField(blank=True, null=True, help_text=_(
+        "Minimum value of the y axis of the chart. If the variable goes "
+        "lower, the chart will automatically expand. If empty, the chart will "
+        "always expand just enough to accomodate the value."))
+    default_chart_max = models.FloatField(blank=True, null=True, help_text=_(
+        "Maximum value of the y axis of the chart. If the variable goes "
+        "lower, the chart will automatically expand. If empty, the chart will "
+        "always expand just enough to accomodate the value."))
 
     class Meta:
         unique_together = (('synoptic_group_station', 'timeseries'),
