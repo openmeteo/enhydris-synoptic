@@ -28,8 +28,12 @@ class SynopticTestCase(TestCase):
         timeseries1_2 = Timeseries.objects.get(gentity=station1,
                                                name='Air temperature')
         timeseries2_1 = Timeseries.objects.get(gentity=station2, name='Rain')
+        timeseries2_1.precision = 1
+        timeseries2_1.save()
         timeseries2_2 = Timeseries.objects.get(gentity=station2,
                                                name='Air temperature')
+        timeseries2_2.precision = 1
+        timeseries2_2.save()
 
         # Komboti rain timeseries
         komboti_rain = PthelmaTimeseries(timeseries1_1.id)
@@ -55,9 +59,9 @@ class SynopticTestCase(TestCase):
         agios_rain = PthelmaTimeseries(timeseries2_1.id)
         agios_rain.read(StringIO(textwrap.dedent(
             """\
-            2015-10-23 15:00,0.2,
             2015-10-23 15:10,0,
-            2015-10-23 15:20,1.4,
+            2015-10-23 15:20,0.2,
+            2015-10-23 15:30,1.4,
             """)))
         agios_rain.write_to_db(django.db.connection, commit=False)
 
@@ -109,3 +113,19 @@ class SynopticTestCase(TestCase):
             </div>
             """.format(reverse('synoptic_station_view',
                                kwargs={'pk': self.sgs1.id}))))
+        self.assertContains(response, html=True, text=textwrap.dedent(
+            """\
+            <div class="panel panel-default">
+              <div class="panel-heading"><a href="{}">Agios Athanasios</a>
+              </div>
+              <div class="panel-body">
+                <dl class="dl-horizontal">
+                  <dt>Last update</dt><dd>2015-10-23 15:20  (+0000)</dd>
+                  <dt>&nbsp;</dt><dd></dd>
+                  <dt>Rain</dt><dd>0.2 mm</dd>
+                  <dt>Air temperature</dt><dd>38.5 °C</dd>
+                </dl>
+              </div>
+            </div>
+            """.format(reverse('synoptic_station_view',
+                               kwargs={'pk': self.sgs2.id}))))
