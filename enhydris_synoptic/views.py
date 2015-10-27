@@ -1,6 +1,7 @@
 from six import StringIO
 
 from django import db
+from django.conf import settings
 from django.http import HttpResponse
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -122,7 +123,13 @@ class ChartView(SingleObjectMixin, View):
         # Gridlines
         ax.grid(b=True, which='both', color='b', linestyle=':')
 
-        # Return plot
+        # Create plot
         result = HttpResponse(content_type="image/png")
         fig.savefig(result)
+
+        # If unit testing, also return some data
+        if hasattr(settings, 'TEST_MATPLOTLIB') and settings.TEST_MATPLOTLIB:
+            result['X-Matplotlib-Data'] = repr(
+                ax.lines[0].get_xydata()).replace('\n', ' ')
+
         return result
