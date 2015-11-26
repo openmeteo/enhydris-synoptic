@@ -6,15 +6,15 @@ from datetime import datetime
 from six import StringIO
 import textwrap
 
-from django.core.urlresolvers import reverse
 import django.db
+from django.core.urlresolvers import reverse
 from django.test import override_settings, TestCase
 
+from enhydris.hcore.models import Station, Timeseries
+from model_mommy import mommy
 import numpy as np
 from pthelma.timeseries import Timeseries as PthelmaTimeseries
 
-import enhydris.hcore.tests.test_views
-from enhydris.hcore.models import Station, Timeseries
 from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
                                       SynopticTimeseries)
 
@@ -22,23 +22,57 @@ from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
 class SynopticTestCase(TestCase):
 
     def setUp(self):
-        # Create test data in Enhydris
-        enhydris.hcore.tests.test_views.create_test_data()
-        station1 = Station.objects.get(name='Komboti')
-        station2 = Station.objects.get(name='Agios Athanasios')
-        timeseries1_1 = Timeseries.objects.get(gentity=station1, name='Rain')
-        timeseries1_2 = Timeseries.objects.get(gentity=station1,
-                                               name='Air temperature')
-        timeseries2_1 = Timeseries.objects.get(gentity=station2, name='Rain')
-        timeseries2_1.precision = 1
-        timeseries2_1.save()
-        timeseries2_2 = Timeseries.objects.get(gentity=station2,
-                                               name='Air temperature')
-        timeseries2_2.precision = 1
-        timeseries2_2.save()
+        # Station
+        self.station_komboti = mommy.make(Station, name='Komboti')
+        self.station_agios = mommy.make(Station, name='Agios Athanasios')
 
-        # Komboti rain timeseries
-        komboti_rain = PthelmaTimeseries(timeseries1_1.id)
+        # Synoptic group
+        self.sg1 = mommy.make(SynopticGroup, name='My Group')
+
+        # SynopticGroupStation
+        self.sgs1 = mommy.make(SynopticGroupStation,
+                               synoptic_group=self.sg1,
+                               station=self.station_komboti,
+                               order=1)
+        self.sgs2 = mommy.make(SynopticGroupStation,
+                               synoptic_group=self.sg1,
+                               station=self.station_agios,
+                               order=2)
+
+        # Timeseries
+        self.ts_komboti_rain = mommy.make(
+            Timeseries, gentity=self.station_komboti, name='Rain',
+            unit_of_measurement__symbol='mm')
+        self.ts_komboti_temperature = mommy.make(
+            Timeseries, gentity=self.station_komboti, name='Air temperature',
+            unit_of_measurement__symbol='°C')
+        self.ts_agios_rain = mommy.make(
+            Timeseries, gentity=self.station_agios, name='Rain', precision=1,
+            unit_of_measurement__symbol='mm')
+        self.ts_agios_temperature = mommy.make(
+            Timeseries, gentity=self.station_agios, name='Air temperature',
+            precision=1, unit_of_measurement__symbol='°C')
+
+        # SynopticTimeseries
+        self.sts1_1 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs1,
+                                 timeseries=self.ts_komboti_rain,
+                                 order=1)
+        self.sts1_2 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs1,
+                                 timeseries=self.ts_komboti_temperature,
+                                 order=2)
+        self.sts2_1 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs2,
+                                 timeseries=self.ts_agios_rain,
+                                 order=1)
+        self.sts2_2 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs2,
+                                 timeseries=self.ts_agios_temperature,
+                                 order=2)
+
+        # Komboti rain timeseries data
+        komboti_rain = PthelmaTimeseries(self.ts_komboti_rain.id)
         komboti_rain.read(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,0,
@@ -47,8 +81,8 @@ class SynopticTestCase(TestCase):
             """)))
         komboti_rain.write_to_db(django.db.connection, commit=False)
 
-        # Komboti temperature timeseries
-        komboti_temperature = PthelmaTimeseries(timeseries1_2.id)
+        # Komboti temperature timeseries data
+        komboti_temperature = PthelmaTimeseries(self.ts_komboti_temperature.id)
         komboti_temperature.read(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,15,
@@ -57,8 +91,8 @@ class SynopticTestCase(TestCase):
             """)))
         komboti_temperature.write_to_db(django.db.connection, commit=False)
 
-        # Agios Athanasios rain timeseries
-        agios_rain = PthelmaTimeseries(timeseries2_1.id)
+        # Agios Athanasios rain timeseries data
+        agios_rain = PthelmaTimeseries(self.ts_agios_rain.id)
         agios_rain.read(StringIO(textwrap.dedent(
             """\
             2015-10-23 15:10,0,
@@ -67,8 +101,8 @@ class SynopticTestCase(TestCase):
             """)))
         agios_rain.write_to_db(django.db.connection, commit=False)
 
-        # Agios Athanasios temperature timeseries
-        agios_temperature = PthelmaTimeseries(timeseries2_2.id)
+        # Agios Athanasios temperature timeseries data
+        agios_temperature = PthelmaTimeseries(self.ts_agios_temperature.id)
         agios_temperature.read(StringIO(textwrap.dedent(
             """\
             2015-10-23 15:00,40,
@@ -76,29 +110,6 @@ class SynopticTestCase(TestCase):
             2015-10-23 15:20,38.5,
             """)))
         agios_temperature.write_to_db(django.db.connection, commit=False)
-
-        # SynopticGroup
-        sg1 = SynopticGroup.objects.create(name='My Group')
-
-        # SynopticGroupStation
-        self.sgs1 = SynopticGroupStation.objects.create(
-            synoptic_group=sg1, station=station1, order=1)
-        self.sgs2 = SynopticGroupStation.objects.create(
-            synoptic_group=sg1, station=station2, order=2)
-
-        # SynopticTimeseries
-        self.sts1_1 = SynopticTimeseries.objects.create(
-            synoptic_group_station=self.sgs1, timeseries=timeseries1_1,
-            order=1)
-        self.sts1_2 = SynopticTimeseries.objects.create(
-            synoptic_group_station=self.sgs1, timeseries=timeseries1_2,
-            order=2)
-        self.sts2_1 = SynopticTimeseries.objects.create(
-            synoptic_group_station=self.sgs2, timeseries=timeseries2_1,
-            order=1)
-        self.sts2_2 = SynopticTimeseries.objects.create(
-            synoptic_group_station=self.sgs2, timeseries=timeseries2_2,
-            order=2)
 
     def test_synoptic_view(self):
         response = self.client.get(reverse('synoptic_view',
