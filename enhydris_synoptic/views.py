@@ -15,14 +15,14 @@ from pthelma.timeseries import Timeseries
 from enhydris_synoptic import models
 
 
-def get_last_common_date(timeseries):
+def get_last_common_date(synoptic_timeseries):
     # We don't actually return the last common date, which would be
     # difficult; instead, we return the minimum of the last dates of the
     # timeseries, which will usually be the last common date. station is
     # an enhydris_synoptic.models.Station object.
     result = None
-    for atimeseries in timeseries:
-        end_date = atimeseries.end_date
+    for asynts in synoptic_timeseries:
+        end_date = asynts.timeseries.end_date
         if end_date and ((not result) or (end_date < result)):
             result = end_date
     return result
@@ -30,21 +30,20 @@ def get_last_common_date(timeseries):
 
 def add_synoptic_group_station_context(synoptic_group_station):
     synoptic_timeseries = models.SynopticTimeseries.objects.filter(
-        synoptic_group_station=synoptic_group_station)
-    timeseries = [x.timeseries for x in synoptic_timeseries]
-    synoptic_group_station.last_common_date = get_last_common_date(timeseries)
+        synoptic_group_station=synoptic_group_station)[:]
+    synoptic_group_station.last_common_date = get_last_common_date(
+        synoptic_timeseries)
     synoptic_group_station.synoptic_timeseries = []
-    for atimeseries in timeseries:
+    for asynts in synoptic_timeseries:
         synoptic_group_station.error = False
-        tsrecords = Timeseries(atimeseries.id)
+        tsrecords = Timeseries(asynts.timeseries.id)
         tsrecords.read_from_db(db.connection)
         try:
-            atimeseries.value = tsrecords[
-                synoptic_group_station.last_common_date]
+            asynts.value = tsrecords[synoptic_group_station.last_common_date]
         except KeyError:
             synoptic_group_station.error = True
             continue
-        synoptic_group_station.synoptic_timeseries.append(atimeseries)
+        synoptic_group_station.synoptic_timeseries.append(asynts)
 
 
 class SynopticView(DetailView):

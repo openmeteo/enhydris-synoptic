@@ -46,6 +46,12 @@ class SynopticTestCase(TestCase):
         self.ts_komboti_temperature = mommy.make(
             Timeseries, gentity=self.station_komboti, name='Air temperature',
             unit_of_measurement__symbol='°C')
+        self.ts_komboti_wind_speed = mommy.make(
+            Timeseries, gentity=self.station_komboti, name='Wind speed',
+            precision=1, unit_of_measurement__symbol='m/s')
+        self.ts_komboti_wind_gust = mommy.make(
+            Timeseries, gentity=self.station_komboti, name='Wind gust',
+            precision=1, unit_of_measurement__symbol='m/s')
         self.ts_agios_rain = mommy.make(
             Timeseries, gentity=self.station_agios, name='Rain', precision=1,
             unit_of_measurement__symbol='mm')
@@ -62,6 +68,19 @@ class SynopticTestCase(TestCase):
                                  synoptic_group_station=self.sgs1,
                                  timeseries=self.ts_komboti_temperature,
                                  order=2)
+        self.sts1_3 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs1,
+                                 timeseries=self.ts_komboti_wind_speed,
+                                 title='Wind',
+                                 subtitle='speed',
+                                 order=3)
+        self.sts1_4 = mommy.make(SynopticTimeseries,
+                                 synoptic_group_station=self.sgs1,
+                                 timeseries=self.ts_komboti_wind_gust,
+                                 title='Wind',
+                                 subtitle='gust',
+                                 group_with=self.sts1_3,
+                                 order=4)
         self.sts2_1 = mommy.make(SynopticTimeseries,
                                  synoptic_group_station=self.sgs2,
                                  timeseries=self.ts_agios_rain,
@@ -90,6 +109,26 @@ class SynopticTestCase(TestCase):
             2015-10-22 15:20,17,
             """)))
         komboti_temperature.write_to_db(django.db.connection, commit=False)
+
+        # Komboti wind speed data
+        komboti_wind_speed = PthelmaTimeseries(self.ts_komboti_wind_speed.id)
+        komboti_wind_speed.read(StringIO(textwrap.dedent(
+            """\
+            2015-10-22 15:00,2.9,
+            2015-10-22 15:10,3.2,
+            2015-10-22 15:20,3,
+            """)))
+        komboti_wind_speed.write_to_db(django.db.connection, commit=False)
+
+        # Komboti wind gust data
+        komboti_wind_gust = PthelmaTimeseries(self.ts_komboti_wind_gust.id)
+        komboti_wind_gust.read(StringIO(textwrap.dedent(
+            """\
+            2015-10-22 15:00,3.7,
+            2015-10-22 15:10,4.5,
+            2015-10-22 15:20,4.1,
+            """)))
+        komboti_wind_gust.write_to_db(django.db.connection, commit=False)
 
         # Agios Athanasios rain timeseries data
         agios_rain = PthelmaTimeseries(self.ts_agios_rain.id)
@@ -125,6 +164,8 @@ class SynopticTestCase(TestCase):
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0 mm</dd>
                   <dt>Air temperature</dt><dd>17 °C</dd>
+                  <dt>Wind (speed)</dt><dd>3.0 m/s</dd>
+                  <dt>&nbsp;&nbsp;&nbsp; (gust)</dt><dd>4.1 m/s</dd>
                 </dl>
               </div>
             </div>
