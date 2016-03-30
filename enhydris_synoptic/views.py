@@ -74,17 +74,42 @@ class SynopticStationView(DetailView):
 class ChartView(SingleObjectMixin, View):
     model = models.SynopticTimeseries
 
+    def get_color(self, i):
+        """Return the color to be used for line with sequence i
+
+        The first line to be drawn uses red, so self.get_color(0)='red';
+        the second one uses green, so self.get_color(1)='green'; and there are
+        also one or two more colors. We assume the user will not attempt to
+        group more than a few time series together. However, if this happens,
+        we recycle the colors starting from red again, to make sure we don't
+        have an index error or anything.
+        """
+        colors = ['red', 'green', 'blue', 'magenta']
+        return colors[i % len(colors)]
+
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        # Read the last 144 records of the time series into a pandas object
-        ts = Timeseries(self.object.timeseries.id)
-        ts.read_from_db(db.connection)
-        buff = StringIO()
-        ts.write(buff)
-        buff.seek(0)
-        tsdata = pd.read_csv(buff, parse_dates=[0], usecols=[0, 1],
-                             index_col=0, header=None)[-144:]
+        # Get all synoptic time series to put in the chart; i.e. the
+        # requested one plus the ones that are grouped with it.
+        synoptic_timeseries = [self.object]
+        synoptic_timeseries.extend(models.SynopticTimeseries.objects.filter(
+            group_with=self.object.id))
+
+        # Read the last 144 records of each time series into a pandas object
+        for t in synoptic_timeseries:
+            ats = Timeseries(t.timeseries.id)
+            ats.read_from_db(db.connection)
+            buff = StringIO()
+            ats.write(buff)
+            buff.seek(0)
+            t.pandas_object = pd.read_csv(buff, parse_dates=[0],
+                                          usecols=[0, 1], index_col=0,
+                                          header=None)[-144:]
+
+        # Reorder them so that the greatest is at the top
+        synoptic_timeseries.sort(key=lambda x: float(x.pandas_object.sum()),
+                                 reverse=True)
 
         # Setup plot
         fig = plt.figure()
@@ -94,12 +119,18 @@ class ChartView(SingleObjectMixin, View):
         matplotlib.rcParams.update({'font.size': 7})
         ax = fig.add_subplot(1, 1, 1)
 
-        # Draw line. We use matplotlib's plot() instead of pandas's wrapper,
+        # Draw lines. We use matplotlib's plot() instead of pandas's wrapper,
         # because otherwise there is trouble modifying the x axis labels
         # (see http://stackoverflow.com/questions/12945971/).
-        xdata = tsdata.index.to_pydatetime()
-        ydata = tsdata.values.transpose()[0]
-        ax.plot(xdata, ydata, color='r')
+        for i, s in enumerate(synoptic_timeseries):
+            xdata = s.pandas_object.index.to_pydatetime()
+            ydata = s.pandas_object.values.transpose()[0]
+            ax.plot(xdata, ydata, color=self.get_color(i),
+                    label=s.get_subtitle())
+            if i == 0:
+                # We will need later the data of the first time series, in
+                # order to fill the chart
+                gydata = ydata
 
         # Change plot limits as needed
         xmin, xmax, ymin, ymax = ax.axis()
@@ -110,7 +141,7 @@ class ChartView(SingleObjectMixin, View):
         ax.set_ylim([ymin, ymax])
 
         # Fill
-        ax.fill_between(xdata, ydata, ymin, color='#ffff00')
+        ax.fill_between(xdata, gydata, ymin, color='#ffff00')
 
         # X ticks and labels
         ax.xaxis.set_minor_locator(HourLocator(byhour=range(0, 24, 3)))
@@ -119,8 +150,10 @@ class ChartView(SingleObjectMixin, View):
         ax.xaxis.set_major_formatter(
             DateFormatter('\n    %Y-%m-%d $\\rightarrow$'))
 
-        # Gridlines
+        # Gridlines and legend
         ax.grid(b=True, which='both', color='b', linestyle=':')
+        if len(synoptic_timeseries) > 1:
+            ax.legend()
 
         # Create plot
         result = HttpResponse(content_type="image/png")
@@ -128,7 +161,8 @@ class ChartView(SingleObjectMixin, View):
 
         # If unit testing, also return some data
         if hasattr(settings, 'TEST_MATPLOTLIB') and settings.TEST_MATPLOTLIB:
-            result['X-Matplotlib-Data'] = repr(
-                ax.lines[0].get_xydata()).replace('\n', ' ')
+            data = [repr(line.get_xydata()).replace('\n', ' ')
+                    for line in ax.lines]
+            result['X-Matplotlib-Data'] = '(' + ', '.join(data) + ')'
 
         return result

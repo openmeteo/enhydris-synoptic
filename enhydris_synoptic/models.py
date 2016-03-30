@@ -65,6 +65,13 @@ class SynopticGroupStation(models.Model):
         super(SynopticGroupStation, self).save(*args, **kwargs)
 
 
+class SynopticTimeseriesManager(models.Manager):
+
+    def primary(self):
+        """Return only time series that don't have group_with."""
+        return self.filter(group_with__isnull=True)
+
+
 class SynopticTimeseries(models.Model):
     synoptic_group_station = models.ForeignKey(SynopticGroupStation)
     timeseries = models.ForeignKey(Timeseries)
@@ -87,6 +94,8 @@ class SynopticTimeseries(models.Model):
         "lower, the chart will automatically expand. If empty, the chart will "
         "always expand just enough to accomodate the value."))
 
+    objects = SynopticTimeseriesManager()
+
     class Meta:
         unique_together = (('synoptic_group_station', 'timeseries'),
                            ('synoptic_group_station', 'order'),
@@ -94,8 +103,17 @@ class SynopticTimeseries(models.Model):
         ordering = ['synoptic_group_station', 'order']
         verbose_name_plural = 'Synoptic timeseries'
 
+    def __str__(self):
+        return str(self.synoptic_group_station) + ' - ' + self.get_full_name()
+
     def get_title(self):
         return self.title or self.timeseries.name
 
     def get_subtitle(self):
         return self.subtitle or self.timeseries.name
+
+    def get_full_name(self):
+        result = self.get_title()
+        if self.subtitle:
+            result += ' (' + self.subtitle + ')'
+        return result

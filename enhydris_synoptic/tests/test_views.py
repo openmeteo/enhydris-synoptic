@@ -227,8 +227,8 @@ class SynopticTestCase(TestCase):
 
         # Retrieve data
         datastr = response['X-Matplotlib-Data']
-        self.assertTrue(datastr.startswith('array('))
-        datastr = 'np.' + datastr
+        self.assertTrue(datastr.startswith('(array('))
+        datastr = datastr.replace('array', 'np.array')
         data_array = eval(datastr)
 
         # Check that the data is correct
@@ -241,3 +241,42 @@ class SynopticTestCase(TestCase):
             [dt(2015, 10, 23, 15, 20), 38.5],
         ])
         np.testing.assert_allclose(data_array, desired_result)
+
+    @override_settings(TEST_MATPLOTLIB=True)
+    def test_synoptic_chart_group_view(self):
+        # Here we test the wind speed chart, which is grouped with wind gust.
+        # See the comment at the beginning of test_synoptic_chart_view; the
+        # same applies here.
+
+        # Get response
+        response = self.client.get(reverse('synoptic_chart_view',
+                                           kwargs={'pk': self.sts1_3.id}))
+
+        # Check that it is a png of substantial length
+        self.assertEquals(response['Content-Type'], 'image/png')
+        self.assertGreater(len(response.content), 100)
+
+        # Retrieve data
+        datastr = response['X-Matplotlib-Data']
+        self.assertTrue(datastr.startswith('(array('))
+        datastr = datastr.replace('array', 'np.array')
+        data_array = eval(datastr)
+
+        # Check that the data is correct
+        def dt(y, mo, d, h, mi):
+            adelta = datetime(y, mo, d, h, mi) - datetime(1, 1, 1)
+            return adelta.days + 1 + adelta.seconds / 86400.0
+        desired_result = (
+            np.array([
+                [dt(2015, 10, 22, 15, 00), 3.7],
+                [dt(2015, 10, 22, 15, 10), 4.5],
+                [dt(2015, 10, 22, 15, 20), 4.1],
+            ]),
+            np.array([
+                [dt(2015, 10, 22, 15, 00), 2.9],
+                [dt(2015, 10, 22, 15, 10), 3.2],
+                [dt(2015, 10, 22, 15, 20), 3],
+            ]),
+        )
+        np.testing.assert_allclose(data_array[0], desired_result[0])
+        np.testing.assert_allclose(data_array[1], desired_result[1])

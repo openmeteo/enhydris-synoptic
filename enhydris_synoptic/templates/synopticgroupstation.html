@@ -9,8 +9,8 @@
       {% include "synopticgroupstation-report.html" %}
     </div>
   </div>
-  {% for synoptic_timeseries in object.synoptictimeseries_set.all %}
-    <h2>{{ synoptic_timeseries.timeseries.name }}</h2>
+  {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
+    <h2>{{ synoptic_timeseries.get_title }}</h2>
     <img src={% url "synoptic_chart_view" synoptic_timeseries.id %}
     <hr>
   {% endfor %}
