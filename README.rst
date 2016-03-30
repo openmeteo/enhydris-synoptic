@@ -5,9 +5,6 @@ Note that it does not check permissions; any synoptic view created
 will be public, regardless of whether the timeseries from which it is
 derived are marked top secret.
 
-At the time of this writing Enhydris-synoptic is in heavy development
-and does not work at all.
-
 Enhydris-synoptic is free software, available under the GNU Affero
 General Public License.
 
