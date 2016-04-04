@@ -19,6 +19,7 @@ kwargs = {
     'description': "View current weather conditions in Enhydris",
     'author': "Antonis Christofides",
     'author_email': "anthony@itia.ntua.gr",
+    'url': "https://github.com/openmeteo/enhydris-synoptic",
     'packages': packages,
     'install_requires': installation_requirements,
     'test_suite': 'runtests.runtests',
