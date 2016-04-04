@@ -13,7 +13,7 @@ def runtests():
     django.setup()
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=1, interactive=True)
-    failures = test_runner.run_tests(['enhydris'])
+    failures = test_runner.run_tests(['enhydris_synoptic'])
     sys.exit(bool(failures))
 
 

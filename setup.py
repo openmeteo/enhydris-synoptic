@@ -14,7 +14,7 @@ packages = find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests',
 
 kwargs = {
     'name': "enhydris-synoptic",
-    'version': __import__('enhydris_synopic').__version__,
+    'version': __import__('enhydris_synoptic').__version__,
     'license': "AGPL3",
     'description': "View current weather conditions in Enhydris",
     'author': "Antonis Christofides",
