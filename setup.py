@@ -22,6 +22,7 @@ kwargs = {
     'author_email': "anthony@itia.ntua.gr",
     'url': "https://github.com/openmeteo/enhydris-synoptic",
     'packages': packages,
+    'package_data': {'enhydris_synoptic': ['templates/*']},
     'install_requires': installation_requirements,
     'test_suite': 'runtests.runtests',
     'tests_require': ['model-mommy>=1.2.4'],
