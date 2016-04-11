@@ -8,6 +8,7 @@ installation_requirements = [
     "pandas>=0.14",
     "matplotlib>=1.4",
     "six>=1.9",
+    "celery>=3.1,<4",
 ]
 
 packages = find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests',
