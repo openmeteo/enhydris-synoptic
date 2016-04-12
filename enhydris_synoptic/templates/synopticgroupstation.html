@@ -11,7 +11,7 @@
   </div>
   {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
     <h2>{{ synoptic_timeseries.get_title }}</h2>
-    <img src={% url "synoptic_chart_view" synoptic_timeseries.id %}
+    <img src="../../chart/{{ synoptic_timeseries.id }}.png">
     <hr>
   {% endfor %}
 {% endblock %}
