@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import os
 import platform
@@ -22,7 +22,7 @@ from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
                                       SynopticTimeseries)
 
 
-def write_output_to_file(relative_filename, s):
+def write_output_to_file(relative_filename, s, binary=False):
     """Write string (or bytes) to a file.
 
        The resulting output file name is the concatenation of
@@ -39,7 +39,9 @@ def write_output_to_file(relative_filename, s):
 
     # Write result to temporary file
     temporary_file = output_file + '.1'
-    with open(temporary_file, 'w') as f:
+    s = s if binary else s.encode('utf8')
+    mode = 'wb' if binary else 'w'
+    with open(temporary_file, mode) as f:
         f.write(s)
 
     # Replace final file, atomically if possible
@@ -111,7 +113,7 @@ def render_synoptic_station(sgroupstation):
     add_synoptic_group_station_context(sgroupstation)
     output = render_to_string('synopticgroupstation.html',
                               context={'object': sgroupstation})
-    filename = os.path.join('station', sgroupstation.id)
+    filename = os.path.join('station', str(sgroupstation.id), 'index.html')
     write_output_to_file(filename, output)
 
 
@@ -196,10 +198,11 @@ def render_chart(a_synoptic_timeseries):
         ax.legend()
 
     # Create and save plot
-    with BytesIO() as f:
-        fig.savefig(f)
-        filename = os.path.join('chart', a_synoptic_timeseries.id + '.png')
-        write_output_to_file(filename, f.getvalue())
+    f = BytesIO()
+    fig.savefig(f)
+    filename = os.path.join('chart', str(a_synoptic_timeseries.id) + '.png')
+    write_output_to_file(filename, f.getvalue(), binary=True)
+    f.close()
 
     # Return the data, for unit testing
     data = [repr(line.get_xydata()).replace('\n', ' ')

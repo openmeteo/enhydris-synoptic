@@ -4,10 +4,14 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 from six import StringIO
+import os
+import shutil
+import tempfile
 import textwrap
 
+from django.conf import settings
+from django.http import HttpResponse
 import django.db
-from django.core.urlresolvers import reverse
 from django.test import override_settings, TestCase
 
 from enhydris.hcore.models import Station, Timeseries
@@ -17,9 +21,42 @@ from pthelma.timeseries import Timeseries as PthelmaTimeseries
 
 from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
                                       SynopticTimeseries)
+from enhydris_synoptic.tasks import (render_chart, render_synoptic_group,
+                                     render_synoptic_station)
+
+
+class RandomSynopticRoot(override_settings):
+    """
+    Override ENHYDRIS_SYNOPTIC_ROOT to a temporary directory.
+
+    Specifying "@RandomSynopticRoot()" as a decorator is the same as
+    "@override_settings(ENHYDRIS_SYNOPTIC_ROOT=tempfile.mkdtemp())", except
+    that in the end it removes the temporary directory.
+    """
+
+    def __init__(self):
+        self.tmpdir = tempfile.mkdtemp()
+        super(RandomSynopticRoot, self).__init__(
+            ENHYDRIS_SYNOPTIC_ROOT=self.tmpdir)
+
+    def disable(self):
+        super(RandomSynopticRoot, self).disable()
+        shutil.rmtree(self.tmpdir)
 
 
 class SynopticTestCase(TestCase):
+
+    def assertHtmlContains(self, filename, text):
+        """Check if a file contains an HTML extract.
+
+        This is pretty much the same as self.assertContains() with html=True,
+        but uses a filename instead of a response.
+        """
+        # We implement it by converting to an HTTPResponse, because there is
+        # no better way to use self.assertContains() to do the actual job.
+        with open(filename) as f:
+            response = HttpResponse(f.read())
+        self.assertContains(response, text, html=True)
 
     def setUp(self):
         # Station
@@ -150,14 +187,17 @@ class SynopticTestCase(TestCase):
             """)))
         agios_temperature.write_to_db(django.db.connection, commit=False)
 
-    def test_synoptic_view(self):
-        response = self.client.get(reverse('synoptic_view',
-                                           kwargs={'slug': 'My Group'}))
-        self.assertTemplateUsed(response, 'synopticgroup.html')
-        self.assertContains(response, html=True, text=textwrap.dedent(
+    @RandomSynopticRoot()
+    def test_synoptic_group(self):
+        render_synoptic_group(self.sg1)
+        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT,
+                                self.sg1.name, 'index.html')
+        self.assertHtmlContains(filename, text=textwrap.dedent(
             """\
             <div class="panel panel-default">
-              <div class="panel-heading"><a href="{}">Komboti</a></div>
+              <div class="panel-heading">
+                <a href="../station/{}/">Komboti</a>
+              </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
                   <dt>Last update</dt><dd>2015-10-22 15:20  (+0000)</dd>
@@ -169,12 +209,12 @@ class SynopticTestCase(TestCase):
                 </dl>
               </div>
             </div>
-            """.format(reverse('synoptic_station_view',
-                               kwargs={'pk': self.sgs1.id}))))
-        self.assertContains(response, html=True, text=textwrap.dedent(
+            """.format(self.sgs1.id)))
+        self.assertHtmlContains(filename, text=textwrap.dedent(
             """\
             <div class="panel panel-default">
-              <div class="panel-heading"><a href="{}">Agios Athanasios</a>
+              <div class="panel-heading">
+                <a href="../station/{}/">Agios Athanasios</a>
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
@@ -185,14 +225,14 @@ class SynopticTestCase(TestCase):
                 </dl>
               </div>
             </div>
-            """.format(reverse('synoptic_station_view',
-                               kwargs={'pk': self.sgs2.id}))))
+            """.format(self.sgs2.id)))
 
-    def test_synoptic_station_view(self):
-        response = self.client.get(reverse('synoptic_station_view',
-                                           kwargs={'pk': self.sgs2.id}))
-        self.assertTemplateUsed(response, 'synopticgroupstation.html')
-        self.assertContains(response, html=True, text=textwrap.dedent(
+    @RandomSynopticRoot()
+    def test_synoptic_station(self):
+        render_synoptic_station(self.sgs2)
+        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "station",
+                                str(self.sgs2.id), 'index.html')
+        self.assertHtmlContains(filename, text=textwrap.dedent(
             """\
             <div class="panel panel-default">
               <div class="panel-heading">Latest measurements</div>
@@ -205,28 +245,25 @@ class SynopticTestCase(TestCase):
                 </dl>
               </div>
             </div>
-            """.format(reverse('synoptic_station_view',
-                               kwargs={'pk': self.sgs2.id}))))
+            """))
 
-    @override_settings(TEST_MATPLOTLIB=True)
-    def test_synoptic_chart_view(self):
+    @RandomSynopticRoot()
+    def test_synoptic_chart(self):
         # We will not compare a bitmap because it is unreliable; instead, we
-        # will verify that an image was returned and that the data that was
+        # will verify that an image was created and that the data that was
         # used in the image creation was correct. See
         # http://stackoverflow.com/questions/27948126#27948646
-        # The view knows that it must return the data in an HTTP header
-        # because we have set TEST_MATPLOTLIB above.
 
-        # Get response
-        response = self.client.get(reverse('synoptic_chart_view',
-                                           kwargs={'pk': self.sts2_2.id}))
+        # Create chart
+        datastr = render_chart(self.sts2_2)
 
         # Check that it is a png of substantial length
-        self.assertEquals(response['Content-Type'], 'image/png')
-        self.assertGreater(len(response.content), 100)
+        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",
+                                str(self.sts2_2.id) + '.png')
+        self.assertTrue(filename.endswith('.png'))
+        self.assertGreater(os.stat(filename).st_size, 100)
 
-        # Retrieve data
-        datastr = response['X-Matplotlib-Data']
+        # Retrieve data from returned value
         self.assertTrue(datastr.startswith('(array('))
         datastr = datastr.replace('array', 'np.array')
         data_array = eval(datastr)
@@ -242,22 +279,22 @@ class SynopticTestCase(TestCase):
         ])
         np.testing.assert_allclose(data_array, desired_result)
 
-    @override_settings(TEST_MATPLOTLIB=True)
-    def test_synoptic_chart_group_view(self):
+    @RandomSynopticRoot()
+    def test_synoptic_chart_group(self):
         # Here we test the wind speed chart, which is grouped with wind gust.
         # See the comment at the beginning of test_synoptic_chart_view; the
         # same applies here.
 
-        # Get response
-        response = self.client.get(reverse('synoptic_chart_view',
-                                           kwargs={'pk': self.sts1_3.id}))
+        # Create chart
+        datastr = render_chart(self.sts1_3)
 
         # Check that it is a png of substantial length
-        self.assertEquals(response['Content-Type'], 'image/png')
-        self.assertGreater(len(response.content), 100)
+        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",
+                                str(self.sts1_3.id) + '.png')
+        self.assertTrue(filename.endswith('.png'))
+        self.assertGreater(os.stat(filename).st_size, 100)
 
-        # Retrieve data
-        datastr = response['X-Matplotlib-Data']
+        # Retrieve data from returned value
         self.assertTrue(datastr.startswith('(array('))
         datastr = datastr.replace('array', 'np.array')
         data_array = eval(datastr)
