@@ -8,26 +8,32 @@ derived are marked top secret.
 Enhydris-synoptic is free software, available under the GNU Affero
 General Public License.
 
-**Installing**
+**Installing and configuring**
 
 - ``pip install enhydris-synoptic``
 
 - In the Enhydris ``settings.py`` file, add ``enhydris_synoptic`` to
-  ``INSTALLED_APPS``. In addition, if it's not already there, add
-  ``ROOT_URLCONF = 'urls'``.
+  ``INSTALLED_APPS``, and set ``ENHYDRIS_SYNOPTIC_ROOT`` and
+  ``ENHYDRIS_SYNOPTIC_URL``.
 
-- In your ``urls.py`` add a pattern for ``enhydris_synoptic``; for
-  example::
-
-    from django.conf.urls import include, url
-
-    from enhydris.urls import urlpatterns
-
-    from enhydris_synoptic import urls as synoptic_urls
-
-    urlpatterns.insert(0, url(r'^synoptic/', include(synoptic_urls)))
+  Enhydris-synoptic works by creating static files which are then served
+  by the web server. ``ENHYDRIS_SYNOPTIC_ROOT`` indicates where this
+  files shall be stored. ``ENHYDRIS_SYNOPTIC_URL`` is currently not used
+  anywhere, but it's better to set it anyway; later versions might start
+  to use it without warning.
 
 - In the Enhydris configuration directory, execute ``python manage.py
   migrate``.
 
+- Run ``celery`` and ``celerybeat``, and configure ``celerybeat`` to
+  execute the ``enhydris_synoptic.tasks.create_static_files`` task once
+  in a while.
+
+- Configure your web server to serve ``ENHYDRIS_SYNOPTIC_ROOT`` at
+  ``ENHYDRIS_SYNOPTIC_URL``.
+
 - Go to the admin and setup a view.
+
+After celery executes, the report will be available at
+``ENHYDRIS_SYNOPTIC_URL + name + '/'``, where ``name`` is the name given
+to the synoptic view.
