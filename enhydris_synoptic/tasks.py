@@ -94,11 +94,14 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
         tsrecords.read_from_db(db.connection)
 
         # Keep only the 144 preceding last_common_date
-        start_date, end_date = tsrecords.bounding_dates()
-        tsrecords.delete_items(
-            sgroupstation.last_common_date + timedelta(minutes=1), end_date)
-        tsrecords.delete_items(
-            start_date, sgroupstation.last_common_date - timedelta(days=1))
+        bounding_dates = tsrecords.bounding_dates()
+        if bounding_dates:
+            start_date, end_date = bounding_dates
+            tsrecords.delete_items(
+                sgroupstation.last_common_date + timedelta(minutes=1),
+                end_date)
+            tsrecords.delete_items(
+                start_date, sgroupstation.last_common_date - timedelta(days=1))
 
         # Attach records to the object
         asynts.tsrecords = tsrecords
