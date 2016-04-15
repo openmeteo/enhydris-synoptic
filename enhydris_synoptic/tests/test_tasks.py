@@ -188,7 +188,7 @@ class SynopticTestCase(TestCase):
 
     @RandomSynopticRoot()
     @override_settings(TEST_MATPLOTLIB=True)
-    def test_create_static_files(self):
+    def test_synoptic_group(self):
         create_static_files()
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT,
                                 self.sg1.name, 'index.html')
@@ -227,6 +227,10 @@ class SynopticTestCase(TestCase):
             </div>
             """.format(self.sgs2.id)))
 
+    @RandomSynopticRoot()
+    @override_settings(TEST_MATPLOTLIB=True)
+    def test_synoptic_station(self):
+        create_static_files()
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "station",
                                 str(self.sgs2.id), 'index.html')
         self.assertHtmlContains(filename, text=textwrap.dedent(
@@ -244,10 +248,16 @@ class SynopticTestCase(TestCase):
             </div>
             """))
 
-        # Checking chart: We will not compare a bitmap because it is
-        # unreliable; instead, we will verify that an image was created and
-        # that the data that was used in the image creation was correct. See
+    @RandomSynopticRoot()
+    @override_settings(TEST_MATPLOTLIB=True)
+    def test_chart(self):
+        # We will not compare a bitmap because it is unreliable; instead, we
+        # will verify that an image was created and that the data that was used
+        # in the image creation was correct. See
         # http://stackoverflow.com/questions/27948126#27948646
+
+        # Do the job
+        create_static_files()
 
         # Check that it is a png of substantial length
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",
@@ -272,8 +282,14 @@ class SynopticTestCase(TestCase):
         ])
         np.testing.assert_allclose(data_array, desired_result)
 
+    @RandomSynopticRoot()
+    @override_settings(TEST_MATPLOTLIB=True)
+    def test_grouped_chart(self):
         # Here we test the wind speed chart, which is grouped with wind gust.
-        # See the comment above; the same applies here.
+        # See the comment in test_chart() above; the same applies here.
+
+        # Do the job
+        create_static_files()
 
         # Check that it is a png of substantial length
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",

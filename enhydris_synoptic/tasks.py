@@ -90,7 +90,7 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
     sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
     for asynts in synoptic_timeseries:
         # Get the time series records
-        tsrecords = Timeseries(asynts.id)
+        tsrecords = Timeseries(asynts.timeseries.id)
         tsrecords.read_from_db(db.connection)
 
         # Keep only the 144 preceding last_common_date
