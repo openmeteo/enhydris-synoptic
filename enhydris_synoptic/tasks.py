@@ -200,6 +200,7 @@ def render_chart(a_synoptic_timeseries):
     # Create and save plot
     f = BytesIO()
     fig.savefig(f)
+    plt.close(fig)  # Release some memory
     filename = os.path.join('chart', str(a_synoptic_timeseries.id) + '.png')
     write_output_to_file(filename, f.getvalue(), binary=True)
     f.close()
