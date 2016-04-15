@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+from datetime import timedelta
 import os
 import platform
 from six import BytesIO, StringIO
@@ -18,8 +19,7 @@ from pthelma.timeseries import Timeseries
 
 from enhydris_synoptic.celery import app
 from enhydris_synoptic import models
-from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
-                                      SynopticTimeseries)
+from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
 
 
 def write_output_to_file(relative_filename, s, binary=False):
@@ -77,40 +77,59 @@ def get_last_common_date(synoptic_timeseries):
     return result
 
 
-def add_synoptic_group_station_context(synoptic_group_station):
-    synoptic_timeseries = models.SynopticTimeseries.objects.filter(
-        synoptic_group_station=synoptic_group_station)[:]
-    synoptic_group_station.last_common_date = get_last_common_date(
-        synoptic_timeseries)
-    synoptic_group_station.synoptic_timeseries = []
+def get_timeseries_for_synoptic_group_station(sgroupstation):
+    """Return list with synoptic timeseries.
+
+    For each synoptic timeseries in the given synoptic group station,
+    grab the last 144 records preceding the last common date, attach these
+    records to the synoptic timeseries object, and attach these time series
+    to the sgroupstation object as the synoptic_timeseries attribute.
+    """
+    synoptic_timeseries = list(models.SynopticTimeseries.objects.filter(
+        synoptic_group_station=sgroupstation))
+    sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
     for asynts in synoptic_timeseries:
-        synoptic_group_station.error = False
-        tsrecords = Timeseries(asynts.timeseries.id)
+        # Get the time series records
+        tsrecords = Timeseries(asynts.id)
         tsrecords.read_from_db(db.connection)
+
+        # Keep only the 144 preceding last_common_date
+        start_date, end_date = tsrecords.bounding_dates()
+        tsrecords.delete_items(
+            sgroupstation.last_common_date + timedelta(minutes=1), end_date)
+        tsrecords.delete_items(
+            start_date, sgroupstation.last_common_date - timedelta(days=1))
+
+        # Attach records to the object
+        asynts.tsrecords = tsrecords
+    sgroupstation.synoptic_timeseries = synoptic_timeseries
+
+
+def add_synoptic_group_station_context(synoptic_group_station):
+    for asynts in synoptic_group_station.synoptic_timeseries:
+        synoptic_group_station.error = False
         try:
-            asynts.value = tsrecords[synoptic_group_station.last_common_date]
+            asynts.value = asynts.tsrecords[
+                synoptic_group_station.last_common_date]
         except KeyError:
             synoptic_group_station.error = True
             continue
-        synoptic_group_station.synoptic_timeseries.append(asynts)
 
 
-def render_synoptic_group(synoptic_group):
-    synoptic_group_stations = models.SynopticGroupStation.objects.filter(
-        synoptic_group=synoptic_group)[:]
-    for synoptic_group_station in synoptic_group_stations:
-        add_synoptic_group_station_context(synoptic_group_station)
+def render_synoptic_group(synoptic_group, all_sgroupstations):
+    subset = [x
+              for x in all_sgroupstations
+              if x.synoptic_group.id == synoptic_group.id]
     output = render_to_string(
         'synopticgroup.html',
         context={'object': synoptic_group,
-                 'synoptic_group_stations': synoptic_group_stations,
+                 'synoptic_group_stations': subset,
                  })
     filename = os.path.join(synoptic_group.name, 'index.html')
     write_output_to_file(filename, output)
 
 
 def render_synoptic_station(sgroupstation):
-    add_synoptic_group_station_context(sgroupstation)
     output = render_to_string('synopticgroupstation.html',
                               context={'object': sgroupstation})
     filename = os.path.join('station', str(sgroupstation.id), 'index.html')
@@ -131,23 +150,22 @@ def get_color(i):
     return colors[i % len(colors)]
 
 
-def render_chart(a_synoptic_timeseries):
+def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     # Get all synoptic time series to put in the chart; i.e. the
     # requested one plus the ones that are grouped with it.
-    synoptic_timeseries = [a_synoptic_timeseries]
-    synoptic_timeseries.extend(models.SynopticTimeseries.objects.filter(
-        group_with=a_synoptic_timeseries.id))
+    synoptic_timeseries = [
+        x for x in all_synoptic_timeseries
+        if (x.id == a_synoptic_timeseries.id)
+        or (x.group_with and (x.group_with.id == a_synoptic_timeseries.id))]
 
     # Read the last 144 records of each time series into a pandas object
     for t in synoptic_timeseries:
-        ats = Timeseries(t.timeseries.id)
-        ats.read_from_db(db.connection)
         buff = StringIO()
-        ats.write(buff)
+        t.tsrecords.write(buff)
         buff.seek(0)
         t.pandas_object = pd.read_csv(buff, parse_dates=[0],
                                       usecols=[0, 1], index_col=0,
-                                      header=None)[-144:]
+                                      header=None)
 
     # Reorder them so that the greatest is at the top
     synoptic_timeseries.sort(key=lambda x: float(x.pandas_object.sum()),
@@ -205,18 +223,31 @@ def render_chart(a_synoptic_timeseries):
     write_output_to_file(filename, f.getvalue(), binary=True)
     f.close()
 
-    # Return the data, for unit testing
-    data = [repr(line.get_xydata()).replace('\n', ' ')
-            for line in ax.lines]
-    return '(' + ', '.join(data) + ')'
+    # If unit testing, write the data to a file.
+    if hasattr(settings, 'TEST_MATPLOTLIB') and settings.TEST_MATPLOTLIB:
+        filename = os.path.join('chart',
+                                str(a_synoptic_timeseries.id) + '.dat')
+        data = [repr(line.get_xydata()).replace('\n', ' ')
+                for line in ax.lines]
+        write_output_to_file(filename, '(' + ', '.join(data) + ')')
 
 
 @app.task
 def create_static_files():
     """Create static html files for all enhydris-synoptic."""
-    for stimeseries in SynopticTimeseries.objects.all():
-        render_chart(stimeseries)
+    # Create a list of all synoptic group stations
+    all_sgroupstations = []
     for sgroupstation in SynopticGroupStation.objects.all():
+        get_timeseries_for_synoptic_group_station(sgroupstation)
+        add_synoptic_group_station_context(sgroupstation)
+        all_sgroupstations.append(sgroupstation)
+
+    # For each station, create its reports and its charts
+    for sgroupstation in all_sgroupstations:
         render_synoptic_station(sgroupstation)
+        for t in sgroupstation.synoptic_timeseries:
+            render_chart(t, sgroupstation.synoptic_timeseries)
+
+    # Finally create the reports for each synoptic group
     for sgroup in SynopticGroup.objects.all():
-        render_synoptic_group(sgroup)
+        render_synoptic_group(sgroup, all_sgroupstations)

@@ -21,8 +21,7 @@ from pthelma.timeseries import Timeseries as PthelmaTimeseries
 
 from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
                                       SynopticTimeseries)
-from enhydris_synoptic.tasks import (render_chart, render_synoptic_group,
-                                     render_synoptic_station)
+from enhydris_synoptic.tasks import create_static_files
 
 
 class RandomSynopticRoot(override_settings):
@@ -188,8 +187,9 @@ class SynopticTestCase(TestCase):
         agios_temperature.write_to_db(django.db.connection, commit=False)
 
     @RandomSynopticRoot()
-    def test_synoptic_group(self):
-        render_synoptic_group(self.sg1)
+    @override_settings(TEST_MATPLOTLIB=True)
+    def test_create_static_files(self):
+        create_static_files()
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT,
                                 self.sg1.name, 'index.html')
         self.assertHtmlContains(filename, text=textwrap.dedent(
@@ -227,9 +227,6 @@ class SynopticTestCase(TestCase):
             </div>
             """.format(self.sgs2.id)))
 
-    @RandomSynopticRoot()
-    def test_synoptic_station(self):
-        render_synoptic_station(self.sgs2)
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "station",
                                 str(self.sgs2.id), 'index.html')
         self.assertHtmlContains(filename, text=textwrap.dedent(
@@ -247,15 +244,10 @@ class SynopticTestCase(TestCase):
             </div>
             """))
 
-    @RandomSynopticRoot()
-    def test_synoptic_chart(self):
-        # We will not compare a bitmap because it is unreliable; instead, we
-        # will verify that an image was created and that the data that was
-        # used in the image creation was correct. See
+        # Checking chart: We will not compare a bitmap because it is
+        # unreliable; instead, we will verify that an image was created and
+        # that the data that was used in the image creation was correct. See
         # http://stackoverflow.com/questions/27948126#27948646
-
-        # Create chart
-        datastr = render_chart(self.sts2_2)
 
         # Check that it is a png of substantial length
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",
@@ -263,7 +255,8 @@ class SynopticTestCase(TestCase):
         self.assertTrue(filename.endswith('.png'))
         self.assertGreater(os.stat(filename).st_size, 100)
 
-        # Retrieve data from returned value
+        # Retrieve data
+        datastr = open(filename.replace('png', 'dat')).read()
         self.assertTrue(datastr.startswith('(array('))
         datastr = datastr.replace('array', 'np.array')
         data_array = eval(datastr)
@@ -279,14 +272,8 @@ class SynopticTestCase(TestCase):
         ])
         np.testing.assert_allclose(data_array, desired_result)
 
-    @RandomSynopticRoot()
-    def test_synoptic_chart_group(self):
         # Here we test the wind speed chart, which is grouped with wind gust.
-        # See the comment at the beginning of test_synoptic_chart_view; the
-        # same applies here.
-
-        # Create chart
-        datastr = render_chart(self.sts1_3)
+        # See the comment above; the same applies here.
 
         # Check that it is a png of substantial length
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "chart",
@@ -294,7 +281,8 @@ class SynopticTestCase(TestCase):
         self.assertTrue(filename.endswith('.png'))
         self.assertGreater(os.stat(filename).st_size, 100)
 
-        # Retrieve data from returned value
+        # Retrieve data
+        datastr = open(filename.replace('png', 'dat')).read()
         self.assertTrue(datastr.startswith('(array('))
         datastr = datastr.replace('array', 'np.array')
         data_array = eval(datastr)
