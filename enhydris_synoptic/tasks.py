@@ -135,7 +135,8 @@ def render_synoptic_group(synoptic_group, all_sgroupstations):
 def render_synoptic_station(sgroupstation):
     output = render_to_string('synopticgroupstation.html',
                               context={'object': sgroupstation})
-    filename = os.path.join('station', str(sgroupstation.id), 'index.html')
+    filename = os.path.join(sgroupstation.synoptic_group.slug,
+                            'station', str(sgroupstation.id), 'index.html')
     write_output_to_file(filename, output)
 
 
