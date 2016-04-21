@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import six
 
 from django.db import IntegrityError, models
@@ -8,7 +10,9 @@ from enhydris.hcore.models import Station, Timeseries
 
 @six.python_2_unicode_compatible
 class SynopticGroup(models.Model):
-    name = models.SlugField(unique=True)
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True,
+                            help_text='Identifier to be used in URL')
     stations = models.ManyToManyField(Station, through='SynopticGroupStation')
 
     def __str__(self):

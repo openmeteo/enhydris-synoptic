@@ -128,7 +128,7 @@ def render_synoptic_group(synoptic_group, all_sgroupstations):
         context={'object': synoptic_group,
                  'synoptic_group_stations': subset,
                  })
-    filename = os.path.join(synoptic_group.name, 'index.html')
+    filename = os.path.join(synoptic_group.slug, 'index.html')
     write_output_to_file(filename, output)
 
 

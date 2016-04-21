@@ -63,7 +63,7 @@ class SynopticTestCase(TestCase):
         self.station_agios = mommy.make(Station, name='Agios Athanasios')
 
         # Synoptic group
-        self.sg1 = mommy.make(SynopticGroup, name='My Group')
+        self.sg1 = mommy.make(SynopticGroup, slug='mygroup')
 
         # SynopticGroupStation
         self.sgs1 = mommy.make(SynopticGroupStation,

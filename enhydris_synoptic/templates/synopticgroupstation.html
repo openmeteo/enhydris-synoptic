@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% load i18n %}
 
+
+{% block title %}
+  {% blocktrans with name=object.station.name %}
+    Weather conditions at {{ name }}
+  {% endblocktrans %}
+{% endblock %}
+
+
 {% block content %}
   <h1>{% trans "Weather conditions at " %}{{ object.station.name }}</h1>
   <div class="panel panel-default">

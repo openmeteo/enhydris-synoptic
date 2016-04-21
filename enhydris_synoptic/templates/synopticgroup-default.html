@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% load i18n %}
 
+
+{% block title %}
+  {% blocktrans with name=object.name %}
+    {{ name }} meteorological report
+  {% endblocktrans %}
+{% endblock %}
+
+
 {% block content %}
   <h1>{% trans "Latest measurements" %}</h1>
   {% for object in synoptic_group_stations %}

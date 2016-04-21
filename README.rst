@@ -35,5 +35,5 @@ General Public License.
 - Go to the admin and setup a view.
 
 After celery executes, the report will be available at
-``ENHYDRIS_SYNOPTIC_URL + name + '/'``, where ``name`` is the name given
-to the synoptic view.
+``ENHYDRIS_SYNOPTIC_URL + slug + '/'``, where ``slug`` is the URL identifier
+given to the synoptic view.

@@ -21,7 +21,7 @@ class SynopticGroupStationTestCase(TestCase):
 
     def test_check_timeseries_integrity(self):
         # Create SynopticGroup
-        sg1 = SynopticGroup.objects.create(name='My Group')
+        sg1 = SynopticGroup.objects.create(slug='mygroup')
 
         # Create SynopticGroupStation
         self.sgs1 = SynopticGroupStation.objects.create(
