@@ -191,12 +191,12 @@ class SynopticTestCase(TestCase):
     def test_synoptic_group(self):
         create_static_files()
         filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT,
-                                self.sg1.name, 'index.html')
+                                self.sg1.slug, 'index.html')
         self.assertHtmlContains(filename, text=textwrap.dedent(
             """\
             <div class="panel panel-default">
               <div class="panel-heading">
-                <a href="../station/{}/">Komboti</a>
+                <a href="station/{}/">Komboti</a>
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
@@ -214,7 +214,7 @@ class SynopticTestCase(TestCase):
             """\
             <div class="panel panel-default">
               <div class="panel-heading">
-                <a href="../station/{}/">Agios Athanasios</a>
+                <a href="station/{}/">Agios Athanasios</a>
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
@@ -231,8 +231,8 @@ class SynopticTestCase(TestCase):
     @override_settings(TEST_MATPLOTLIB=True)
     def test_synoptic_station(self):
         create_static_files()
-        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, "station",
-                                str(self.sgs2.id), 'index.html')
+        filename = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, self.sg1.slug,
+                                "station", str(self.sgs2.id), 'index.html')
         self.assertHtmlContains(filename, text=textwrap.dedent(
             """\
             <div class="panel panel-default">
