@@ -7,7 +7,6 @@ from six import BytesIO, StringIO
 import sys
 import time
 
-from django import db
 from django.conf import settings
 from django.template.loader import render_to_string
 
@@ -15,7 +14,6 @@ import matplotlib; matplotlib.use('AGG')  # NOQA
 from matplotlib.dates import DateFormatter, DayLocator, HourLocator
 import matplotlib.pyplot as plt
 import pandas as pd
-from pthelma.timeseries import Timeseries
 
 from enhydris_synoptic.celery import app
 from enhydris_synoptic import models
@@ -90,8 +88,7 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
     sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
     for asynts in synoptic_timeseries:
         # Get the time series records
-        tsrecords = Timeseries(asynts.timeseries.id)
-        tsrecords.read_from_db(db.connection)
+        tsrecords = asynts.timeseries.get_all_data()
 
         # Keep only the 144 preceding last_common_date
         bounding_dates = tsrecords.bounding_dates()

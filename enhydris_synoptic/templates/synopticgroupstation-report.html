@@ -1,4 +1,5 @@
 {% load i18n %}
+{% load tz %}
 
 {% if object.error %}
   {% blocktrans %}
@@ -6,23 +7,25 @@
       time series are all the same time step.</p>
   {% endblocktrans %}
 {% else %}
-  <dl class="dl-horizontal">
-    <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date|date:"Y-m-d H:i e (O)" }}</dd>
-    <dt>&nbsp;</dt><dd></dd>
-    {% for synts in object.synoptic_timeseries %}
-      <dt>
-        {% if not synts.group_with %}
-          {{ synts.title|default:synts.timeseries.name }}
-        {% else %}
-          &nbsp;&nbsp;&nbsp;
-        {% endif %}
-        {% if synts.subtitle %}
-          ({{ synts.subtitle }})
-        {% endif %}
-      </dt>
-      {% with precision=synts.timeseries.precision|default:0 %}
-        <dd>{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}</dd>
-      {% endwith %}
-    {% endfor %}
+  {% localtime off %}
+    <dl class="dl-horizontal">
+      <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date|date:"Y-m-d H:i e (O)" }}</dd>
+      <dt>&nbsp;</dt><dd></dd>
+      {% for synts in object.synoptic_timeseries %}
+        <dt>
+          {% if not synts.group_with %}
+            {{ synts.title|default:synts.timeseries.name }}
+          {% else %}
+            &nbsp;&nbsp;&nbsp;
+          {% endif %}
+          {% if synts.subtitle %}
+            ({{ synts.subtitle }})
+          {% endif %}
+        </dt>
+        {% with precision=synts.timeseries.precision|default:0 %}
+          <dd>{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}</dd>
+        {% endwith %}
+      {% endfor %}
     </dl>
+  {% endlocaltime %}
 {% endif %}

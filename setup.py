@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 installation_requirements = [
-    "enhydris>=0.5,<0.7",
+    "enhydris>=0.8,<0.9",
     "pandas>=0.14",
     "matplotlib>=1.4",
     "six>=1.9",

@@ -11,13 +11,11 @@ import textwrap
 
 from django.conf import settings
 from django.http import HttpResponse
-import django.db
 from django.test import override_settings, TestCase
 
 from enhydris.hcore.models import Station, Timeseries
 from model_mommy import mommy
 import numpy as np
-from pthelma.timeseries import Timeseries as PthelmaTimeseries
 
 from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
                                       SynopticTimeseries)
@@ -78,22 +76,28 @@ class SynopticTestCase(TestCase):
         # Timeseries
         self.ts_komboti_rain = mommy.make(
             Timeseries, gentity=self.station_komboti, name='Rain',
-            unit_of_measurement__symbol='mm')
+            unit_of_measurement__symbol='mm', time_zone__code='EET',
+            time_zone__utc_offset=120)
         self.ts_komboti_temperature = mommy.make(
             Timeseries, gentity=self.station_komboti, name='Air temperature',
-            unit_of_measurement__symbol='°C')
+            unit_of_measurement__symbol='°C', time_zone__code='EET',
+            time_zone__utc_offset=120)
         self.ts_komboti_wind_speed = mommy.make(
             Timeseries, gentity=self.station_komboti, name='Wind speed',
-            precision=1, unit_of_measurement__symbol='m/s')
+            precision=1, unit_of_measurement__symbol='m/s',
+            time_zone__code='EET', time_zone__utc_offset=120)
         self.ts_komboti_wind_gust = mommy.make(
             Timeseries, gentity=self.station_komboti, name='Wind gust',
-            precision=1, unit_of_measurement__symbol='m/s')
+            precision=1, unit_of_measurement__symbol='m/s',
+            time_zone__code='EET', time_zone__utc_offset=120)
         self.ts_agios_rain = mommy.make(
             Timeseries, gentity=self.station_agios, name='Rain', precision=1,
-            unit_of_measurement__symbol='mm')
+            unit_of_measurement__symbol='mm', time_zone__code='EET',
+            time_zone__utc_offset=120)
         self.ts_agios_temperature = mommy.make(
             Timeseries, gentity=self.station_agios, name='Air temperature',
-            precision=1, unit_of_measurement__symbol='°C')
+            precision=1, unit_of_measurement__symbol='°C',
+            time_zone__code='EET', time_zone__utc_offset=120)
 
         # SynopticTimeseries
         self.sts1_1 = mommy.make(SynopticTimeseries,
@@ -127,64 +131,52 @@ class SynopticTestCase(TestCase):
                                  order=2)
 
         # Komboti rain timeseries data
-        komboti_rain = PthelmaTimeseries(self.ts_komboti_rain.id)
-        komboti_rain.read(StringIO(textwrap.dedent(
+        self.ts_komboti_rain.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,0,
             2015-10-22 15:10,0,
             2015-10-22 15:20,0,
             """)))
-        komboti_rain.write_to_db(django.db.connection, commit=False)
 
         # Komboti temperature timeseries data
-        komboti_temperature = PthelmaTimeseries(self.ts_komboti_temperature.id)
-        komboti_temperature.read(StringIO(textwrap.dedent(
+        self.ts_komboti_temperature.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,15,
             2015-10-22 15:10,16,
             2015-10-22 15:20,17,
             """)))
-        komboti_temperature.write_to_db(django.db.connection, commit=False)
 
         # Komboti wind speed data
-        komboti_wind_speed = PthelmaTimeseries(self.ts_komboti_wind_speed.id)
-        komboti_wind_speed.read(StringIO(textwrap.dedent(
+        self.ts_komboti_wind_speed.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,2.9,
             2015-10-22 15:10,3.2,
             2015-10-22 15:20,3,
             """)))
-        komboti_wind_speed.write_to_db(django.db.connection, commit=False)
 
         # Komboti wind gust data
-        komboti_wind_gust = PthelmaTimeseries(self.ts_komboti_wind_gust.id)
-        komboti_wind_gust.read(StringIO(textwrap.dedent(
+        self.ts_komboti_wind_gust.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-22 15:00,3.7,
             2015-10-22 15:10,4.5,
             2015-10-22 15:20,4.1,
             """)))
-        komboti_wind_gust.write_to_db(django.db.connection, commit=False)
 
         # Agios Athanasios rain timeseries data
-        agios_rain = PthelmaTimeseries(self.ts_agios_rain.id)
-        agios_rain.read(StringIO(textwrap.dedent(
+        self.ts_agios_rain.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-23 15:10,0,
             2015-10-23 15:20,0.2,
             2015-10-23 15:30,1.4,
             """)))
-        agios_rain.write_to_db(django.db.connection, commit=False)
 
         # Agios Athanasios temperature timeseries data
-        agios_temperature = PthelmaTimeseries(self.ts_agios_temperature.id)
-        agios_temperature.read(StringIO(textwrap.dedent(
+        self.ts_agios_temperature.set_data(StringIO(textwrap.dedent(
             """\
             2015-10-23 15:00,40,
             2015-10-23 15:10,39,
             2015-10-23 15:20,38.5,
             """)))
-        agios_temperature.write_to_db(django.db.connection, commit=False)
 
     @RandomSynopticRoot()
     @override_settings(TEST_MATPLOTLIB=True)
@@ -200,7 +192,7 @@ class SynopticTestCase(TestCase):
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-22 15:20  (+0000)</dd>
+                  <dt>Last update</dt><dd>2015-10-22 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0 mm</dd>
                   <dt>Air temperature</dt><dd>17 °C</dd>
@@ -218,7 +210,7 @@ class SynopticTestCase(TestCase):
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-23 15:20  (+0000)</dd>
+                  <dt>Last update</dt><dd>2015-10-23 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
@@ -239,7 +231,7 @@ class SynopticTestCase(TestCase):
               <div class="panel-heading">Latest measurements</div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-23 15:20  (+0000)</dd>
+                  <dt>Last update</dt><dd>2015-10-23 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
