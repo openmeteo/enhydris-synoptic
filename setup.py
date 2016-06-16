@@ -1,13 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
 
 
 installation_requirements = [
-    "enhydris>=0.8,<0.9",
+    "enhydris>=1.0,<2",
     "pandas>=0.14",
-    "matplotlib>=1.4",
-    "six>=1.9",
+    "matplotlib>=1.4,<2",
     "celery>=3.1,<4",
 ]
 

@@ -1,14 +1,9 @@
-from __future__ import unicode_literals
-
-import six
-
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
 from enhydris.hcore.models import Station, Timeseries
 
 
-@six.python_2_unicode_compatible
 class SynopticGroup(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True,
@@ -19,7 +14,6 @@ class SynopticGroup(models.Model):
         return self.name
 
 
-@six.python_2_unicode_compatible
 class SynopticGroupStation(models.Model):
     synoptic_group = models.ForeignKey(SynopticGroup)
     station = models.ForeignKey(Station)

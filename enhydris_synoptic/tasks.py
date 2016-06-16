@@ -1,11 +1,5 @@
-from __future__ import absolute_import, unicode_literals
-
-from datetime import timedelta
+from io import BytesIO
 import os
-import platform
-from six import BytesIO, StringIO
-import sys
-import time
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -13,14 +7,13 @@ from django.template.loader import render_to_string
 import matplotlib; matplotlib.use('AGG')  # NOQA
 from matplotlib.dates import DateFormatter, DayLocator, HourLocator
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from enhydris_synoptic.celery import app
 from enhydris_synoptic import models
 from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
 
 
-def write_output_to_file(relative_filename, s, binary=False):
+def write_output_to_file(relative_filename, s):
     """Write string (or bytes) to a file.
 
        The resulting output file name is the concatenation of
@@ -37,29 +30,12 @@ def write_output_to_file(relative_filename, s, binary=False):
 
     # Write result to temporary file
     temporary_file = output_file + '.1'
-    s = s if binary else s.encode('utf8')
-    mode = 'wb' if binary else 'w'
+    mode = 'wb' if isinstance(s, bytes) else 'w'
     with open(temporary_file, mode) as f:
         f.write(s)
 
-    # Replace final file, atomically if possible
-    if sys.version_info[0] >= '3':
-        os.replace(temporary_file, output_file)
-    elif platform.system() == 'Windows':
-        if os.path.exists(output_file):
-            removed = False
-            for i in range(0, 100):
-                try:
-                    os.remove(output_file)
-                    removed = True
-                    break
-                except:
-                    time.sleep(0.001)
-            if not removed:
-                os.remove(output_file)  # This time raise the exception
-        os.rename(temporary_file, output_file)
-    else:
-        os.rename(temporary_file, output_file)
+    # Replace final file atomically
+    os.replace(temporary_file, output_file)
 
 
 def get_last_common_date(synoptic_timeseries):
@@ -87,21 +63,8 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
         synoptic_group_station=sgroupstation))
     sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
     for asynts in synoptic_timeseries:
-        # Get the time series records
-        tsrecords = asynts.timeseries.get_all_data()
-
-        # Keep only the 144 preceding last_common_date
-        bounding_dates = tsrecords.bounding_dates()
-        if bounding_dates:
-            start_date, end_date = bounding_dates
-            tsrecords.delete_items(
-                sgroupstation.last_common_date + timedelta(minutes=1),
-                end_date)
-            tsrecords.delete_items(
-                start_date, sgroupstation.last_common_date - timedelta(days=1))
-
-        # Attach records to the object
-        asynts.tsrecords = tsrecords
+        asynts.data = asynts.timeseries.get_all_data().loc[
+            :sgroupstation.last_common_date.replace(tzinfo=None)].tail(144)
     sgroupstation.synoptic_timeseries = synoptic_timeseries
 
 
@@ -109,8 +72,9 @@ def add_synoptic_group_station_context(synoptic_group_station):
     for asynts in synoptic_group_station.synoptic_timeseries:
         synoptic_group_station.error = False
         try:
-            asynts.value = asynts.tsrecords[
-                synoptic_group_station.last_common_date]
+            asynts.value = asynts.data.loc[
+                synoptic_group_station.last_common_date.replace(tzinfo=None)][
+                    'value']
         except KeyError:
             synoptic_group_station.error = True
             continue
@@ -159,17 +123,8 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
         if (x.id == a_synoptic_timeseries.id)
         or (x.group_with and (x.group_with.id == a_synoptic_timeseries.id))]
 
-    # Read the last 144 records of each time series into a pandas object
-    for t in synoptic_timeseries:
-        buff = StringIO()
-        t.tsrecords.write(buff)
-        buff.seek(0)
-        t.pandas_object = pd.read_csv(buff, parse_dates=[0],
-                                      usecols=[0, 1], index_col=0,
-                                      header=None)
-
     # Reorder them so that the greatest is at the top
-    synoptic_timeseries.sort(key=lambda x: float(x.pandas_object.sum()),
+    synoptic_timeseries.sort(key=lambda x: float(x.data.value.sum()),
                              reverse=True)
 
     # Setup plot
@@ -184,8 +139,8 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     # because otherwise there is trouble modifying the x axis labels
     # (see http://stackoverflow.com/questions/12945971/).
     for i, s in enumerate(synoptic_timeseries):
-        xdata = s.pandas_object.index.to_pydatetime()
-        ydata = s.pandas_object.values.transpose()[0]
+        xdata = s.data.index.to_pydatetime()
+        ydata = s.data['value']
         ax.plot(xdata, ydata, color=get_color(i),
                 label=s.get_subtitle())
         if i == 0:
@@ -221,7 +176,7 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     fig.savefig(f)
     plt.close(fig)  # Release some memory
     filename = os.path.join('chart', str(a_synoptic_timeseries.id) + '.png')
-    write_output_to_file(filename, f.getvalue(), binary=True)
+    write_output_to_file(filename, f.getvalue())
     f.close()
 
     # If unit testing, write the data to a file.

@@ -1,9 +1,5 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 from datetime import datetime
-from six import StringIO
+from io import StringIO
 import os
 import shutil
 import tempfile
