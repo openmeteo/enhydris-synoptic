@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 import os
 
@@ -55,16 +56,17 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
     """Return list with synoptic timeseries.
 
     For each synoptic timeseries in the given synoptic group station,
-    grab the last 144 records preceding the last common date, attach these
+    grab the last 24 hours preceding the last common date, attach these
     records to the synoptic timeseries object, and attach these time series
     to the sgroupstation object as the synoptic_timeseries attribute.
     """
     synoptic_timeseries = list(models.SynopticTimeseries.objects.filter(
         synoptic_group_station=sgroupstation))
     sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
+    start_date = sgroupstation.last_common_date - timedelta(minutes=1339)
     for asynts in synoptic_timeseries:
-        asynts.data = asynts.timeseries.get_all_data().loc[
-            :sgroupstation.last_common_date.replace(tzinfo=None)].tail(144)
+        asynts.data = asynts.timeseries.get_data(
+            start_date=start_date, end_date=sgroupstation.last_common_date)
     sgroupstation.synoptic_timeseries = synoptic_timeseries
 
 
