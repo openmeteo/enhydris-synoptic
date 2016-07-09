@@ -33,5 +33,4 @@ EMAIL_HOST_USER = 'automaticsender@my.domain'
 EMAIL_HOST_PASSWORD = 'mypassword'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ROOT_URLCONF = 'test_urls'
 INSTALLED_APPS = INSTALLED_APPS + ('enhydris_synoptic',)
