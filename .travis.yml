@@ -1,0 +1,39 @@
+language: python
+
+python:
+ - "3.3"
+ - "3.4"
+ # I don't know why, but when attempting to run the tests on 3.5, I get
+ # "AttributeError: 'sqlite3.Connection' object has no attribute
+ # 'enable_load_extension'. I can't debug this issue on the Travis docker
+ # because it currently has no Python 3.5. Note that this shouldn't have to do
+ # with pysqlite, because pysqlite is not supported on Python 3. Deactivating
+ # the tests on 3.5 until I find a way to fix this.
+ # - "3.5"
+
+addons:
+  apt:
+    packages:
+      - gdal-bin
+      - libgdal-dev
+
+install:
+ # Work around https://github.com/macropin/django-registration/issues/103,
+ # which to date has been fixed but not released.
+ - pip install 'django-registration-redux<2'
+
+ - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install 'gdal<1.11'
+
+ - pip install codecov
+
+ # "setup.py test" normally installs all dependencies; however for some reason
+ # at the end of the tests it hangs while trying to destroy the test database.
+ # This occurs on Travis for some python versions. This doesn't happen if
+ # dependecies are installed before running "setup.py test".
+ - pip install .
+
+script:
+ - coverage run setup.py test
+
+after_success:
+ - codecov
