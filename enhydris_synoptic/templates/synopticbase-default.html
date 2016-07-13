@@ -1,1 +1,12 @@
 {% extends "base.html" %}
+
+{% block extra_head %}
+  {{ block.super }}
+  <style>
+    {% comment %}Make page centered and not too wide{% endcomment %}
+    body {
+        max-width: 45em;
+        margin: 0 auto;
+    }
+  </style>
+{% endblock %}
