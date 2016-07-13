@@ -1,3 +1,25 @@
+======================================================
+Enhydris-synoptic - Display current weather conditions
+======================================================
+
+.. image:: https://travis-ci.org/openmeteo/enhydris-synoptic.svg?branch=master
+    :alt: Build button
+    :target: https://travis-ci.org/openmeteo/enhydris-synoptic
+
+.. image:: https://codecov.io/github/openmeteo/enhydris-synoptic/coverage.svg?branch=master
+    :alt: Coverage
+    :target: https://codecov.io/gh/openmeteo/enhydris-synoptic
+
+.. image:: https://img.shields.io/pypi/l/enhydris-synoptic.svg
+    :alt: License
+
+.. image:: https://img.shields.io/pypi/status/enhydris-synoptic.svg
+    :alt: Status
+
+.. image:: https://img.shields.io/pypi/v/enhydris-synoptic.svg
+    :alt: Latest version
+    :target: https://pypi.python.org/pypi/enhydris-synoptic
+
 Enhydris-synoptic is an app that adds a page to Enhydris that shows
 current conditions in several stations.
 

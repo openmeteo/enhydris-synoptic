@@ -24,9 +24,13 @@
       {% include "synopticgroupstation-report.html" %}
     </div>
   </div>
-  {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
-    <h2>{{ synoptic_timeseries.get_title }}</h2>
-    <img src="../../../chart/{{ synoptic_timeseries.id }}.png">
-    <hr>
-  {% endfor %}
+  <div class="charts">
+    <center>
+      {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
+        <h2>{{ synoptic_timeseries.get_title }}</h2>
+        <img src="../../../chart/{{ synoptic_timeseries.id }}.png">
+        <hr>
+      {% endfor %}
+    </center>
+  </div>
 {% endblock %}

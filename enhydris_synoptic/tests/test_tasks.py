@@ -18,6 +18,25 @@ from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,
 from enhydris_synoptic.tasks import create_static_files
 
 
+class RandomEnhydrisTimeseriesDataDir(override_settings):
+    """
+    Override ENHYDRIS_TIMESERIES_DATA_DIR to a temporary directory.
+
+    Specifying "@RandomEnhydrisTimeseriesDataDir()" as a decorator is the same
+    as "@override_settings(ENHYDRIS_TIMESERIES_DATA_DIR=tempfile.mkdtemp())",
+    except that in the end it removes the temporary directory.
+    """
+
+    def __init__(self):
+        self.tmpdir = tempfile.mkdtemp()
+        super(RandomEnhydrisTimeseriesDataDir, self).__init__(
+            ENHYDRIS_TIMESERIES_DATA_DIR=self.tmpdir)
+
+    def disable(self):
+        super(RandomEnhydrisTimeseriesDataDir, self).disable()
+        shutil.rmtree(self.tmpdir)
+
+
 class RandomSynopticRoot(override_settings):
     """
     Override ENHYDRIS_SYNOPTIC_ROOT to a temporary directory.
@@ -37,6 +56,7 @@ class RandomSynopticRoot(override_settings):
         shutil.rmtree(self.tmpdir)
 
 
+@RandomEnhydrisTimeseriesDataDir()
 class SynopticTestCase(TestCase):
 
     def assertHtmlContains(self, filename, text):
@@ -193,7 +213,7 @@ class SynopticTestCase(TestCase):
                   <dt>Rain</dt><dd>0 mm</dd>
                   <dt>Air temperature</dt><dd>17 °C</dd>
                   <dt>Wind (speed)</dt><dd>3.0 m/s</dd>
-                  <dt>&nbsp;&nbsp;&nbsp; (gust)</dt><dd>4.1 m/s</dd>
+                  <dt>Wind (gust)</dt><dd>4.1 m/s</dd>
                 </dl>
               </div>
             </div>

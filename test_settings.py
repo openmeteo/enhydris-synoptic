@@ -8,12 +8,8 @@ ADMINS = (
 MANAGERS = ADMINS
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'openmeteo',
-        'USER': 'openmeteo',
-        'PASSWORD': 'openmeteo',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.contrib.gis.db.backends.spatialite',
+        'NAME': 'enhydris.db',
     }
 }
 TIME_ZONE = 'UTC'
@@ -33,5 +29,4 @@ EMAIL_HOST_USER = 'automaticsender@my.domain'
 EMAIL_HOST_PASSWORD = 'mypassword'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ROOT_URLCONF = 'test_urls'
 INSTALLED_APPS = INSTALLED_APPS + ('enhydris_synoptic',)
