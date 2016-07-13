@@ -13,11 +13,7 @@
       <dt>&nbsp;</dt><dd></dd>
       {% for synts in object.synoptic_timeseries %}
         <dt>
-          {% if not synts.group_with %}
-            {{ synts.title|default:synts.timeseries.name }}
-          {% else %}
-            &nbsp;&nbsp;&nbsp;
-          {% endif %}
+          {{ synts.title|default:synts.timeseries.name }}
           {% if synts.subtitle %}
             ({{ synts.subtitle }})
           {% endif %}

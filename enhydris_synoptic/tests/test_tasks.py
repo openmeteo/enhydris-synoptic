@@ -213,7 +213,7 @@ class SynopticTestCase(TestCase):
                   <dt>Rain</dt><dd>0 mm</dd>
                   <dt>Air temperature</dt><dd>17 °C</dd>
                   <dt>Wind (speed)</dt><dd>3.0 m/s</dd>
-                  <dt>&nbsp;&nbsp;&nbsp; (gust)</dt><dd>4.1 m/s</dd>
+                  <dt>Wind (gust)</dt><dd>4.1 m/s</dd>
                 </dl>
               </div>
             </div>
