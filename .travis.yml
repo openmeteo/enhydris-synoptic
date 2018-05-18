@@ -1,39 +1,41 @@
+sudo: false
+
 language: python
 
 python:
- - "3.3"
  - "3.4"
- # I don't know why, but when attempting to run the tests on 3.5, I get
- # "AttributeError: 'sqlite3.Connection' object has no attribute
- # 'enable_load_extension'. I can't debug this issue on the Travis docker
- # because it currently has no Python 3.5. Note that this shouldn't have to do
- # with pysqlite, because pysqlite is not supported on Python 3. Deactivating
- # the tests on 3.5 until I find a way to fix this.
- # - "3.5"
+ - "3.5"
+ - "3.6"
 
 addons:
+  postgresql: "9.5"
   apt:
     packages:
+      - libgdal1h
       - gdal-bin
       - libgdal-dev
+      - python3-psycopg2
+      - postgresql-9.5-postgis-2.3
 
 install:
- # Work around https://github.com/macropin/django-registration/issues/103,
- # which to date has been fixed but not released.
- - pip install 'django-registration-redux<2'
-
  - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install 'gdal<1.11'
-
  - pip install codecov
+ - pip install psycopg2==2.7.4
+ - pip install -r requirements.txt
+ - pip install -r requirements-dev.txt
+ - git clone https://github.com/openmeteo/enhydris.git ../enhydris
+ - pip install -r ../enhydris/requirements.txt
+ - pip install -r ../enhydris/requirements-test.txt
 
- # "setup.py test" normally installs all dependencies; however for some reason
- # at the end of the tests it hangs while trying to destroy the test database.
- # This occurs on Travis for some python versions. This doesn't happen if
- # dependecies are installed before running "setup.py test".
- - pip install .
+before_script:
+ - psql -U postgres -c "create extension postgis"
+ - cp .travis-settings.py ../enhydris/enhydris/settings/local.py
+ - cd ../enhydris
+ - ln -s ../enhydris-synoptic/enhydris_synoptic .
+ - mkdir /tmp/enhydris-synoptic-root
 
 script:
- - coverage run setup.py test
+ - coverage run --include="./*" --omit="*/tests/*","*/tests.py" ./manage.py test -v2 enhydris_synoptic
 
 after_success:
  - codecov
