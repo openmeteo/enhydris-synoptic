@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from django.test import TestCase
 
-from enhydris.hcore.models import Station, Timeseries
+from enhydris.models import Station, Timeseries
 from model_mommy import mommy
 
 from enhydris_synoptic.models import (SynopticGroup, SynopticGroupStation,

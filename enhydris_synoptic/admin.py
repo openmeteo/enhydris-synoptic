@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from enhydris.hcore.models import Timeseries
+from enhydris.models import Timeseries
 
 from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
 

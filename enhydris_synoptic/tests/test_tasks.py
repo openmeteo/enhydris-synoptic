@@ -9,7 +9,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.test import override_settings, TestCase
 
-from enhydris.hcore.models import Station, Timeseries
+from enhydris.models import Station, Timeseries
 from model_mommy import mommy
 import numpy as np
 

@@ -1,7 +1,7 @@
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
-from enhydris.hcore.models import Station, Timeseries
+from enhydris.models import Station, Timeseries
 
 
 class SynopticGroup(models.Model):
