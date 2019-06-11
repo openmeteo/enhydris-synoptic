@@ -14,11 +14,14 @@ import matplotlib
 matplotlib.use("AGG")  # NOQA
 
 import matplotlib.pyplot as plt
+import pandas.plotting
 from matplotlib.dates import DateFormatter, DayLocator, HourLocator
 
 from enhydris_synoptic import models
 from enhydris_synoptic.celery import app
 from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
+
+pandas.plotting.register_matplotlib_converters()
 
 
 def write_output_to_file(relative_filename, s):
