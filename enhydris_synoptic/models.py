@@ -14,8 +14,8 @@ class SynopticGroup(models.Model):
 
 
 class SynopticGroupStation(models.Model):
-    synoptic_group = models.ForeignKey(SynopticGroup)
-    station = models.ForeignKey(Station)
+    synoptic_group = models.ForeignKey(SynopticGroup, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
     timeseries = models.ManyToManyField(Timeseries, through="SynopticTimeseries")
 
@@ -71,8 +71,10 @@ class SynopticTimeseriesManager(models.Manager):
 
 
 class SynopticTimeseries(models.Model):
-    synoptic_group_station = models.ForeignKey(SynopticGroupStation)
-    timeseries = models.ForeignKey(Timeseries)
+    synoptic_group_station = models.ForeignKey(
+        SynopticGroupStation, on_delete=models.CASCADE
+    )
+    timeseries = models.ForeignKey(Timeseries, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
     title = models.CharField(
         max_length=50,
@@ -86,6 +88,7 @@ class SynopticTimeseries(models.Model):
         "self",
         blank=True,
         null=True,
+        on_delete=models.CASCADE,
         help_text=_(
             "Specify this field if you want to group this time series with "
             "another in the same chart and in the report."

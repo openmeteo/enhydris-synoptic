@@ -74,7 +74,7 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
     for asynts in synoptic_timeseries:
         asynts.data = asynts.timeseries.get_data(
             start_date=start_date, end_date=sgroupstation.last_common_date
-        )
+        ).data
     sgroupstation.synoptic_timeseries = synoptic_timeseries
 
 
