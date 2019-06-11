@@ -1,4 +1,4 @@
-{% extends "synopticbase.html" %}
+{% extends "enhydris-synoptic/base.html" %}
 {% load i18n %}
 
 
@@ -21,7 +21,7 @@
   <div class="panel panel-default">
     <div class="panel-heading">{% trans "Latest measurements" %}</div>
     <div class="panel-body">
-      {% include "synopticgroupstation-report.html" %}
+      {% include "enhydris-synoptic/groupstation-report.html" %}
     </div>
   </div>
   <div class="charts">

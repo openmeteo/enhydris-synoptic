@@ -93,7 +93,7 @@ def add_synoptic_group_station_context(synoptic_group_station):
 def render_synoptic_group(synoptic_group, all_sgroupstations):
     subset = [x for x in all_sgroupstations if x.synoptic_group.id == synoptic_group.id]
     output = render_to_string(
-        "synopticgroup.html",
+        "enhydris-synoptic/group.html",
         context={"object": synoptic_group, "synoptic_group_stations": subset},
     )
     filename = os.path.join(synoptic_group.slug, "index.html")
@@ -102,7 +102,7 @@ def render_synoptic_group(synoptic_group, all_sgroupstations):
 
 def render_synoptic_station(sgroupstation):
     output = render_to_string(
-        "synopticgroupstation.html", context={"object": sgroupstation}
+        "enhydris-synoptic/groupstation.html", context={"object": sgroupstation}
     )
     filename = os.path.join(
         sgroupstation.synoptic_group.slug,
