@@ -1,16 +1,23 @@
-from datetime import timedelta
-from io import BytesIO
+import datetime as dt
 import os
+from io import BytesIO
 
 from django.conf import settings
 from django.template.loader import render_to_string
 
-import matplotlib; matplotlib.use('AGG')  # NOQA
-from matplotlib.dates import DateFormatter, DayLocator, HourLocator
-import matplotlib.pyplot as plt
+import matplotlib
 
-from enhydris_synoptic.celery import app
+# We have to execute matplotlib.use() after the matplotlib import and before the rest of
+# the matplotlib imports, and isort doesn't like that. I'm afraid we need to tell isort
+# to just skip this file.
+# isort:skip_file
+matplotlib.use("AGG")  # NOQA
+
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter, DayLocator, HourLocator
+
 from enhydris_synoptic import models
+from enhydris_synoptic.celery import app
 from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
 
 
@@ -21,8 +28,7 @@ def write_output_to_file(relative_filename, s):
        ENHYDRIS_SYNOPTIC_ROOT plus relative_filename.
     """
     # Determine the output file name
-    output_file = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT,
-                               relative_filename)
+    output_file = os.path.join(settings.ENHYDRIS_SYNOPTIC_ROOT, relative_filename)
 
     # Make sure the directory exists
     dirname = os.path.dirname(output_file)
@@ -30,8 +36,8 @@ def write_output_to_file(relative_filename, s):
         os.makedirs(dirname)
 
     # Write result to temporary file
-    temporary_file = output_file + '.1'
-    mode = 'wb' if isinstance(s, bytes) else 'w'
+    temporary_file = output_file + ".1"
+    mode = "wb" if isinstance(s, bytes) else "w"
     with open(temporary_file, mode) as f:
         f.write(s)
 
@@ -60,13 +66,15 @@ def get_timeseries_for_synoptic_group_station(sgroupstation):
     records to the synoptic timeseries object, and attach these time series
     to the sgroupstation object as the synoptic_timeseries attribute.
     """
-    synoptic_timeseries = list(models.SynopticTimeseries.objects.filter(
-        synoptic_group_station=sgroupstation))
+    synoptic_timeseries = list(
+        models.SynopticTimeseries.objects.filter(synoptic_group_station=sgroupstation)
+    )
     sgroupstation.last_common_date = get_last_common_date(synoptic_timeseries)
-    start_date = sgroupstation.last_common_date - timedelta(minutes=1339)
+    start_date = sgroupstation.last_common_date - dt.timedelta(minutes=1339)
     for asynts in synoptic_timeseries:
         asynts.data = asynts.timeseries.get_data(
-            start_date=start_date, end_date=sgroupstation.last_common_date)
+            start_date=start_date, end_date=sgroupstation.last_common_date
+        )
     sgroupstation.synoptic_timeseries = synoptic_timeseries
 
 
@@ -75,31 +83,33 @@ def add_synoptic_group_station_context(synoptic_group_station):
         synoptic_group_station.error = False
         try:
             asynts.value = asynts.data.loc[
-                synoptic_group_station.last_common_date.replace(tzinfo=None)][
-                    'value']
+                synoptic_group_station.last_common_date.replace(tzinfo=None)
+            ]["value"]
         except KeyError:
             synoptic_group_station.error = True
             continue
 
 
 def render_synoptic_group(synoptic_group, all_sgroupstations):
-    subset = [x
-              for x in all_sgroupstations
-              if x.synoptic_group.id == synoptic_group.id]
+    subset = [x for x in all_sgroupstations if x.synoptic_group.id == synoptic_group.id]
     output = render_to_string(
-        'synopticgroup.html',
-        context={'object': synoptic_group,
-                 'synoptic_group_stations': subset,
-                 })
-    filename = os.path.join(synoptic_group.slug, 'index.html')
+        "synopticgroup.html",
+        context={"object": synoptic_group, "synoptic_group_stations": subset},
+    )
+    filename = os.path.join(synoptic_group.slug, "index.html")
     write_output_to_file(filename, output)
 
 
 def render_synoptic_station(sgroupstation):
-    output = render_to_string('synopticgroupstation.html',
-                              context={'object': sgroupstation})
-    filename = os.path.join(sgroupstation.synoptic_group.slug,
-                            'station', str(sgroupstation.id), 'index.html')
+    output = render_to_string(
+        "synopticgroupstation.html", context={"object": sgroupstation}
+    )
+    filename = os.path.join(
+        sgroupstation.synoptic_group.slug,
+        "station",
+        str(sgroupstation.id),
+        "index.html",
+    )
     write_output_to_file(filename, output)
 
 
@@ -113,7 +123,7 @@ def get_color(i):
     we recycle the colors starting from red again, to make sure we don't
     have an index error or anything.
     """
-    colors = ['red', 'green', 'blue', 'magenta']
+    colors = ["red", "green", "blue", "magenta"]
     return colors[i % len(colors)]
 
 
@@ -121,20 +131,21 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     # Get all synoptic time series to put in the chart; i.e. the
     # requested one plus the ones that are grouped with it.
     synoptic_timeseries = [
-        x for x in all_synoptic_timeseries
+        x
+        for x in all_synoptic_timeseries
         if (x.id == a_synoptic_timeseries.id)
-        or (x.group_with and (x.group_with.id == a_synoptic_timeseries.id))]
+        or (x.group_with and (x.group_with.id == a_synoptic_timeseries.id))
+    ]
 
     # Reorder them so that the greatest is at the top
-    synoptic_timeseries.sort(key=lambda x: float(x.data.value.sum()),
-                             reverse=True)
+    synoptic_timeseries.sort(key=lambda x: float(x.data.value.sum()), reverse=True)
 
     # Setup plot
     fig = plt.figure()
     fig.set_dpi(100)
     fig.set_size_inches(3.2, 2)
     fig.subplots_adjust(left=0.10, right=0.99, bottom=0.15, top=0.97)
-    matplotlib.rcParams.update({'font.size': 7})
+    matplotlib.rcParams.update({"font.size": 7})
     ax = fig.add_subplot(1, 1, 1)
 
     # Draw lines. We use matplotlib's plot() instead of pandas's wrapper,
@@ -142,9 +153,8 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     # (see http://stackoverflow.com/questions/12945971/).
     for i, s in enumerate(synoptic_timeseries):
         xdata = s.data.index.to_pydatetime()
-        ydata = s.data['value']
-        ax.plot(xdata, ydata, color=get_color(i),
-                label=s.get_subtitle())
+        ydata = s.data["value"]
+        ax.plot(xdata, ydata, color=get_color(i), label=s.get_subtitle())
         if i == 0:
             # We will later need the data of the first time series, in
             # order to fill the chart
@@ -159,17 +169,16 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     ax.set_ylim([ymin, ymax])
 
     # Fill
-    ax.fill_between(xdata, gydata, ymin, color='#ffff00')
+    ax.fill_between(xdata, gydata, ymin, color="#ffff00")
 
     # X ticks and labels
     ax.xaxis.set_minor_locator(HourLocator(byhour=range(0, 24, 3)))
-    ax.xaxis.set_minor_formatter(DateFormatter('%H:%M'))
+    ax.xaxis.set_minor_formatter(DateFormatter("%H:%M"))
     ax.xaxis.set_major_locator(DayLocator())
-    ax.xaxis.set_major_formatter(
-        DateFormatter('\n    %Y-%m-%d $\\rightarrow$'))
+    ax.xaxis.set_major_formatter(DateFormatter("\n    %Y-%m-%d $\\rightarrow$"))
 
     # Gridlines and legend
-    ax.grid(b=True, which='both', color='b', linestyle=':')
+    ax.grid(b=True, which="both", color="b", linestyle=":")
     if len(synoptic_timeseries) > 1:
         ax.legend()
 
@@ -177,17 +186,15 @@ def render_chart(a_synoptic_timeseries, all_synoptic_timeseries):
     f = BytesIO()
     fig.savefig(f)
     plt.close(fig)  # Release some memory
-    filename = os.path.join('chart', str(a_synoptic_timeseries.id) + '.png')
+    filename = os.path.join("chart", str(a_synoptic_timeseries.id) + ".png")
     write_output_to_file(filename, f.getvalue())
     f.close()
 
     # If unit testing, write the data to a file.
-    if hasattr(settings, 'TEST_MATPLOTLIB') and settings.TEST_MATPLOTLIB:
-        filename = os.path.join('chart',
-                                str(a_synoptic_timeseries.id) + '.dat')
-        data = [repr(line.get_xydata()).replace('\n', ' ')
-                for line in ax.lines]
-        write_output_to_file(filename, '(' + ', '.join(data) + ')')
+    if hasattr(settings, "TEST_MATPLOTLIB") and settings.TEST_MATPLOTLIB:
+        filename = os.path.join("chart", str(a_synoptic_timeseries.id) + ".dat")
+        data = [repr(line.get_xydata()).replace("\n", " ") for line in ax.lines]
+        write_output_to_file(filename, "(" + ", ".join(data) + ")")
 
 
 @app.task

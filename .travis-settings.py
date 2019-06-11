@@ -1,4 +1,4 @@
-from . import *
+from . import *  # NOQA
 
 DATABASES = {
     'default': {
@@ -11,5 +11,5 @@ DATABASES = {
     }
 }
 
-INSTALLED_APPS.append('enhydris_synoptic')
+INSTALLED_APPS.append('enhydris_synoptic')  # NOQA
 ENHYDRIS_SYNOPTIC_ROOT = '/tmp/enhydris-synoptic-root'

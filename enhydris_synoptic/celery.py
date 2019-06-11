@@ -1,12 +1,10 @@
-import os
-
 from celery import Celery
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
+from enhydris import set_django_settings_module
 
-from django.conf import settings
+set_django_settings_module()
 
-app = Celery('enhydris_synoptic')
+app = Celery("enhydris_synoptic")
 
-app.config_from_object('django.conf:settings')
-app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+app.config_from_object("django.conf:settings")
+app.autodiscover_tasks()
