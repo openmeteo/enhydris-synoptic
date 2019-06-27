@@ -1,3 +1,5 @@
+import datetime as dt
+
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
@@ -62,6 +64,53 @@ class SynopticGroupStation(models.Model):
             previous_synoptictimeseries = syn_ts
 
         super(SynopticGroupStation, self).save(*args, **kwargs)
+
+    @property
+    def synoptic_timeseries(self):
+        """List of synoptic timeseries objects with data.
+
+        The objects in the list have attribute "data", which is a pandas dataframe with
+        the last 24 hours preceding the last common date, and "value", which is the
+        value at the last common date.
+        """
+        if not hasattr(self, "_synoptic_timeseries"):
+            self._determine_timeseries()
+        return self._synoptic_timeseries
+
+    def _determine_timeseries(self):
+        start_date = self.last_common_date - dt.timedelta(minutes=1339)
+        self._synoptic_timeseries = list(self.synoptictimeseries_set.all())
+        self.error = False  # This may be changed by _set_ts_value()
+        for asynts in self._synoptic_timeseries:
+            asynts.data = asynts.timeseries.get_data(
+                start_date=start_date, end_date=self.last_common_date
+            ).data
+            self._set_ts_value(asynts)
+
+    def _set_ts_value(self, asynts):
+        try:
+            asynts.value = asynts.data.loc[self.last_common_date.replace(tzinfo=None)][
+                "value"
+            ]
+        except KeyError:
+            self.error = True
+
+    @property
+    def last_common_date(self):
+        if not hasattr(self, "_last_common_date"):
+            self._determine_last_common_date()
+        return self._last_common_date
+
+    def _determine_last_common_date(self):
+        # We don't actually get the last common date, which would be difficult; instead,
+        # we get the minimum of the last dates of the timeseries, which will usually be
+        # the last common date. station is an enhydris_synoptic.models.Station object.
+        last_common_date = None
+        for asynts in self.synoptictimeseries_set.all():
+            end_date = asynts.timeseries.end_date
+            if end_date and ((not last_common_date) or (end_date < last_common_date)):
+                last_common_date = end_date
+        self._last_common_date = last_common_date
 
 
 class SynopticTimeseriesManager(models.Manager):

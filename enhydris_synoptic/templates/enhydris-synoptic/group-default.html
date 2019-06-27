@@ -11,7 +11,7 @@
 
 {% block content %}
   <h1>{% trans "Latest measurements" %}</h1>
-  {% for object in synoptic_group_stations %}
+  {% for object in object.synopticgroupstation_set.all %}
     <div class="panel panel-default">
       <div class="panel-heading"><a href="station/{{ object.id }}/">{{ object.station.name }}</a></div>
       <div class="panel-body">

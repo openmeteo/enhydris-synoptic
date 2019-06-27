@@ -1,5 +1,4 @@
 from celery import Celery
-
 from enhydris import set_django_settings_module
 
 set_django_settings_module()

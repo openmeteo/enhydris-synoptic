@@ -1,0 +1,215 @@
+"""Quasi-views.
+
+Many (maybe all) of the "views" in this file are not exactly django views, as this app
+uses celery to render its output to static files. So this file contains functionality
+to do such offline rendering. It doesn't know about requests and responses, and it
+doesn't know about HTTP. But logically it's the "views" part of a Django app.
+"""
+import os
+from io import BytesIO
+
+from django.conf import settings
+from django.template.loader import render_to_string
+
+import matplotlib
+
+# We have to execute matplotlib.use() after the matplotlib import and before the rest of
+# the matplotlib imports, and isort doesn't like that. I'm afraid we need to tell isort
+# to just skip this file.
+# isort:skip_file
+matplotlib.use("AGG")  # NOQA
+
+import matplotlib.pyplot as plt
+import pandas.plotting
+from matplotlib.dates import DateFormatter, DayLocator, HourLocator
+
+pandas.plotting.register_matplotlib_converters()
+
+
+class File:
+    """Write string (or bytes) to a file.
+
+    File(relative_filename).write(s) writes string s to the specified file.  The
+    resulting output file name is the concatenation of ENHYDRIS_SYNOPTIC_ROOT plus
+    relative_filename. Directories are automatically created. The file is written
+    atomically; so if many processes attempt to write to it at the same time, only one
+    will win (i.e. the file will not be corrupt).
+    """
+
+    def __init__(self, relative_filename):
+        self.relative_filename = relative_filename
+        self.full_pathname = os.path.join(
+            settings.ENHYDRIS_SYNOPTIC_ROOT, relative_filename
+        )
+
+    def write(self, s):
+        self._ensure_directory_exists()
+        self._write_to_temporary_file(s)
+        self._atomically_replace_final_file()
+
+    def _ensure_directory_exists(self):
+        dirname = os.path.dirname(self.full_pathname)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+    def _write_to_temporary_file(self, s):
+        self.temporary_full_pathname = self.full_pathname + ".1"
+        mode = "wb" if isinstance(s, bytes) else "w"
+        with open(self.temporary_full_pathname, mode) as f:
+            f.write(s)
+
+    def _atomically_replace_final_file(self):
+        os.replace(self.temporary_full_pathname, self.full_pathname)
+
+
+def render_synoptic_station(synstation):
+    _render_station_page(synstation)
+    _render_station_charts(synstation)
+
+
+def _render_station_page(synstation):
+    output = render_to_string(
+        "enhydris-synoptic/groupstation.html", context={"object": synstation}
+    )
+    filename = os.path.join(
+        synstation.synoptic_group.slug, "station", str(synstation.id), "index.html"
+    )
+    File(filename).write(output)
+
+
+def _render_station_charts(synstation):
+    for t in synstation.synoptic_timeseries:
+        Chart(t, synstation.synoptic_timeseries).render()
+
+
+def render_synoptic_group(synoptic_group):
+    _render_only_group(synoptic_group)
+    _render_group_stations(synoptic_group)
+
+
+def _render_only_group(synoptic_group):
+    output = render_to_string(
+        "enhydris-synoptic/group.html", context={"object": synoptic_group}
+    )
+    filename = os.path.join(synoptic_group.slug, "index.html")
+    File(filename).write(output)
+
+
+def _render_group_stations(synoptic_group):
+    for synstation in synoptic_group.synopticgroupstation_set.all():
+        render_synoptic_station(synstation)
+
+
+class Chart:
+    def __init__(self, current_synoptic_timeseries, all_synoptic_timeseries):
+        self.current_synoptic_timeseries = current_synoptic_timeseries
+        self.all_synoptic_timeseries = all_synoptic_timeseries
+
+    def render(self):
+        self._get_all_groupped_timeseries()
+        self._reorder_groupped_timeseries()
+        self._setup_plot()
+        self._draw_lines()
+        self._change_plot_limits()
+        self._fill()
+        self._set_x_ticks_and_labels()
+        self._set_gridlines_and_legend()
+        self._create_and_save_plot()
+        self._write_data_to_file_for_unit_testing()
+
+    def _get_all_groupped_timeseries(self):
+        self._synoptic_timeseries = [
+            x
+            for x in self.all_synoptic_timeseries
+            if (x.id == self.current_synoptic_timeseries.id)
+            or (x.group_with and x.group_with.id == self.current_synoptic_timeseries.id)
+        ]
+
+    def _reorder_groupped_timeseries(self):
+        self._synoptic_timeseries.sort(
+            key=lambda x: float(x.data.value.sum()), reverse=True
+        )
+
+    def _setup_plot(self):
+        self.fig = plt.figure()
+        self.fig.set_dpi(100)
+        self.fig.set_size_inches(3.2, 2)
+        self.fig.subplots_adjust(left=0.10, right=0.99, bottom=0.15, top=0.97)
+        matplotlib.rcParams.update({"font.size": 7})
+        self.ax = self.fig.add_subplot(1, 1, 1)
+
+    def _draw_lines(self):
+        # We use matplotlib's plot() instead of pandas's wrapper, because otherwise
+        # there is trouble modifying the x axis labels (see
+        # http://stackoverflow.com/questions/12945971/).
+        for i, s in enumerate(self._synoptic_timeseries):
+            self.xdata = s.data.index.to_pydatetime()
+            self.ydata = s.data["value"]
+            self.ax.plot(
+                self.xdata, self.ydata, color=self._get_color(i), label=s.get_subtitle()
+            )
+            if i == 0:
+                # We will later need the data of the first time series, in
+                # order to fill the chart
+                self.gydata = self.ydata
+
+    def _change_plot_limits(self):
+        self.xmin, self.xmax, self.ymin, self.ymax = self.ax.axis()
+        if self.current_synoptic_timeseries.default_chart_min:
+            self.ymin = min(
+                self.current_synoptic_timeseries.default_chart_min, self.ymin
+            )
+        if self.current_synoptic_timeseries.default_chart_max:
+            self.ymax = max(
+                self.current_synoptic_timeseries.default_chart_max, self.ymax
+            )
+        self.ax.set_ylim([self.ymin, self.ymax])
+
+    def _fill(self):
+        self.ax.fill_between(self.xdata, self.gydata, self.ymin, color="#ffff00")
+
+    def _set_x_ticks_and_labels(self):
+        self.ax.xaxis.set_minor_locator(HourLocator(byhour=range(0, 24, 3)))
+        self.ax.xaxis.set_minor_formatter(DateFormatter("%H:%M"))
+        self.ax.xaxis.set_major_locator(DayLocator())
+        self.ax.xaxis.set_major_formatter(
+            DateFormatter("\n    %Y-%m-%d $\\rightarrow$")
+        )
+
+    def _set_gridlines_and_legend(self):
+        self.ax.grid(b=True, which="both", color="b", linestyle=":")
+        if len(self._synoptic_timeseries) > 1:
+            self.ax.legend()
+
+    def _create_and_save_plot(self):
+        f = BytesIO()
+        self.fig.savefig(f)
+        plt.close(self.fig)  # Release some memory
+        filename = os.path.join(
+            "chart", str(self.current_synoptic_timeseries.id) + ".png"
+        )
+        File(filename).write(f.getvalue())
+        f.close()
+
+    def _write_data_to_file_for_unit_testing(self):
+        if hasattr(settings, "TEST_MATPLOTLIB") and settings.TEST_MATPLOTLIB:
+            filename = os.path.join(
+                "chart", str(self.current_synoptic_timeseries.id) + ".dat"
+            )
+            data = [
+                repr(line.get_xydata()).replace("\n", " ") for line in self.ax.lines
+            ]
+            File(filename).write("(" + ", ".join(data) + ")")
+
+    def _get_color(self, i):
+        """Return the color to be used for line with sequence i.
+
+        The first line to be drawn uses red, so self.get_color(0)='red';
+        the second one uses green, so self.get_color(1)='green'; and there are
+        also one or two more colors. We assume the user will not attempt to
+        group more than a few time series together. However, if this happens,
+        we recycle the colors starting from red again, to make sure we don't
+        have an index error or anything.
+        """
+        colors = ["red", "green", "blue", "magenta"]
+        return colors[i % len(colors)]
