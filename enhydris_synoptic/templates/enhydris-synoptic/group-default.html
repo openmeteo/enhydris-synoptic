@@ -1,5 +1,6 @@
 {% extends "enhydris-synoptic/base.html" %}
 {% load i18n %}
+{% load static %}
 
 
 {% block title %}
@@ -9,8 +10,18 @@
 {% endblock %}
 
 
+{% block extracss %}
+  {{ block.super }}
+  <link type="text/css" rel="stylesheet" href="{% static "css/enhydris-synoptic.css" %}">
+  <link type="text/css" rel="stylesheet" href="{% static "css/leaflet.groupedlayercontrol.min.css" %}">
+{% endblock %}
+
+
 {% block content %}
   <h1>{% trans "Latest measurements" %}</h1>
+  <div class="panel panel-default">
+    <div id="mapid" style="width: 100%; height: 300px; position:relative"></div>
+  </div>
   {% for object in object.synopticgroupstation_set.all %}
     <div class="panel panel-default">
       <div class="panel-heading"><a href="station/{{ object.id }}/">{{ object.station.name }}</a></div>
@@ -19,4 +30,38 @@
       </div>
     </div>
   {% endfor %}
+{% endblock %}
+
+
+{% block mainjs %}
+  {{ block.super }}
+  <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js"></script>
+  <script type="text/javascript" src="{% static "js/L.Control.MousePosition.js" %}"></script>
+  <script type="text/javascript" src="{% static "js/leaflet.groupedlayercontrol.min.js" %}"></script>
+  <script type="text/javascript">
+    {{ map_js | safe }}
+    enhydris.mapStations = [];
+    {% for object in object.synopticgroupstation_set.all %}
+      enhydris.mapStations.push({
+        id: {{ object.id }},
+        name: "{{ object.station.name | truncatechars:13 }}",
+        latitude: {{ object.station.point.y }},
+        longitude: {{ object.station.point.x }},
+        last_common_date: "{{ object.last_common_date_iso }}",
+        freshness: "{{ object.freshness }}",
+        last_values: {
+          {% for synts in object.synoptic_timeseries %}
+            "{{ synts.title|default:synts.timeseries.name }}":
+            {% with precision=synts.timeseries.precision|default:0 %}
+              "{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}"
+            {% endwith %}
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+        },
+
+      });
+    {% endfor %}
+  </script>
+  <script type="text/javascript" src="{% static "js/enhydris.js" %}"></script>
+  <script type="text/javascript" src="{% static "js/enhydris-synoptic.js" %}"></script>
 {% endblock %}

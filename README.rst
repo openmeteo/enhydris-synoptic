@@ -22,7 +22,7 @@ General Public License.
 
 **Installing and configuring**
 
-- Install Enhydris 2 or later
+- Install Enhydris 3 or later
 
 - Make sure ``enhydris_synoptic`` is in the PYTHONPATH, or link to it from the
   top-level directory of Enhydris.

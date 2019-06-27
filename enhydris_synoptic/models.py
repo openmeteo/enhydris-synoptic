@@ -10,6 +10,13 @@ class SynopticGroup(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True, help_text="Identifier to be used in URL")
     stations = models.ManyToManyField(Station, through="SynopticGroupStation")
+    fresh_time_limit = models.DurationField(
+        help_text=(
+            "Maximum time that may have elapsed for the data to be considered fresh. "
+            "For data older than this the date on the map shows red; for fresh data it "
+            "shows green."
+        )
+    )
 
     def __str__(self):
         return self.name
@@ -112,6 +119,16 @@ class SynopticGroupStation(models.Model):
                 last_common_date = end_date
         self._last_common_date = last_common_date
 
+    @property
+    def last_common_date_iso(self):
+        return self.last_common_date.isoformat().replace("T", " ")[:16]
+
+    @property
+    def freshness(self):
+        oldness = dt.datetime.now(dt.timezone.utc) - self.last_common_date
+        is_old = oldness > self.synoptic_group.fresh_time_limit
+        return "old" if is_old else "recent"
+
 
 class SynopticTimeseriesManager(models.Manager):
     def primary(self):
@@ -130,7 +147,8 @@ class SynopticTimeseries(models.Model):
         blank=True,
         help_text=_(
             "Used as the chart title and as the time series title in the report. "
-            "Leave empty to use the time series name."
+            "Time series in different stations with the same title will show as a "
+            "layer on the map. Leave empty to use the time series name."
         ),
     )
     group_with = models.ForeignKey(

@@ -1,5 +1,8 @@
+import datetime as dt
 import textwrap
 from io import StringIO
+
+from django.contrib.gis.geos import Point
 
 from enhydris.models import Station, Timeseries
 from model_mommy import mommy
@@ -21,11 +24,19 @@ class TestData:
         self._create_timeseries_data()
 
     def _create_stations(self):
-        self.station_komboti = mommy.make(Station, name="Komboti")
-        self.station_agios = mommy.make(Station, name="Agios Athanasios")
+        self.station_komboti = mommy.make(
+            Station, name="Komboti", point=Point(x=21.06071, y=39.09518, srid=4326)
+        )
+        self.station_agios = mommy.make(
+            Station,
+            name="Agios Athanasios",
+            point=Point(x=20.87591, y=39.14904, srid=4326),
+        )
 
     def _create_synoptic_group(self):
-        self.sg1 = mommy.make(SynopticGroup, slug="mygroup")
+        self.sg1 = mommy.make(
+            SynopticGroup, slug="mygroup", fresh_time_limit=dt.timedelta(minutes=60)
+        )
 
     def _create_synoptic_group_stations(self):
         self.sgs_komboti = mommy.make(

@@ -1,10 +1,13 @@
 import datetime as dt
+import textwrap
+from io import StringIO
 
 from django.db import IntegrityError
 from django.test import TestCase
 
 from enhydris.models import Station, Timeseries
 from enhydris.tests import RandomEnhydrisTimeseriesDataDir
+from freezegun import freeze_time
 from model_mommy import mommy
 
 from enhydris_synoptic.models import (
@@ -18,7 +21,9 @@ from .data import TestData
 
 class SynopticGroupTestCase(TestCase):
     def test_create(self):
-        sg = SynopticGroup(name="hello", slug="world")
+        sg = SynopticGroup(
+            name="hello", slug="world", fresh_time_limit=dt.timedelta(minutes=60)
+        )
         sg.save()
         self.assertEqual(SynopticGroup.objects.first().slug, "world")
 
@@ -80,7 +85,9 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
         )
 
         # Create SynopticGroup
-        sg1 = SynopticGroup.objects.create(slug="mygroup")
+        sg1 = SynopticGroup.objects.create(
+            slug="mygroup", fresh_time_limit=dt.timedelta(minutes=10)
+        )
 
         # Create SynopticGroupStation
         self.sgs1 = SynopticGroupStation.objects.create(
@@ -150,6 +157,38 @@ class SynopticGroupStationSynopticTimeseriesTestCase(TestCase):
 
     def test_data(self):
         self.assertEqual(len(self.data.sgs_agios.synoptic_timeseries[0].data), 2)
+
+
+@RandomEnhydrisTimeseriesDataDir()
+class FreshnessTestCase(TestCase):
+    def setUp(self):
+        self.st = mommy.make(
+            SynopticTimeseries,
+            synoptic_group_station__synoptic_group__fresh_time_limit=dt.timedelta(
+                minutes=60
+            ),
+            timeseries__time_zone__code="EET",
+            timeseries__time_zone__utc_offset=120,
+        )
+        self.st.timeseries.set_data(
+            StringIO(
+                textwrap.dedent(
+                    """\
+                    2015-10-22 15:00,0,
+                    2015-10-22 15:10,0,
+                    2015-10-22 15:20,0,
+                    """
+                )
+            )
+        )
+
+    @freeze_time("2015-10-22 14:19:59")
+    def test_data_is_recent(self):
+        self.assertEqual(self.st.synoptic_group_station.freshness, "recent")
+
+    @freeze_time("2015-10-22 14:20:01")
+    def test_data_is_old(self):
+        self.assertEqual(self.st.synoptic_group_station.freshness, "old")
 
 
 class SynopticTimeseriesTestCase(TestCase):

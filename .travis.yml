@@ -32,6 +32,9 @@ before_script:
  - ln -s ../enhydris-synoptic/enhydris_synoptic .
  - mkdir /tmp/enhydris-synoptic-root
 
+env:
+ - SELENIUM_BROWSER=PhantomJS
+
 script:
  - python manage.py makemigrations --check
  - black --check enhydris_synoptic

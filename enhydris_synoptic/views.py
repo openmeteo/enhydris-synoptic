@@ -6,9 +6,11 @@ to do such offline rendering. It doesn't know about requests and responses, and 
 doesn't know about HTTP. But logically it's the "views" part of a Django app.
 """
 import os
+from collections import namedtuple
 from io import BytesIO
 
 from django.conf import settings
+from django.contrib.gis.db.models import Extent
 from django.template.loader import render_to_string
 
 import matplotlib
@@ -19,8 +21,10 @@ import matplotlib
 # isort:skip_file
 matplotlib.use("AGG")  # NOQA
 
+import enhydris.context_processors
 import matplotlib.pyplot as plt
 import pandas.plotting
+from enhydris.views_common import ensure_extent_is_large_enough
 from matplotlib.dates import DateFormatter, DayLocator, HourLocator
 
 pandas.plotting.register_matplotlib_converters()
@@ -89,10 +93,26 @@ def render_synoptic_group(synoptic_group):
 
 def _render_only_group(synoptic_group):
     output = render_to_string(
-        "enhydris-synoptic/group.html", context={"object": synoptic_group}
+        "enhydris-synoptic/group.html",
+        context={"object": synoptic_group, "map_js": _get_map_js(synoptic_group)},
     )
     filename = os.path.join(synoptic_group.slug, "index.html")
     File(filename).write(output)
+
+
+def _get_map_js(sgroup):
+    dummy_request = namedtuple("dummy_request", ["map_viewport"])
+    dummy_request.map_viewport = _get_bounding_box(sgroup)
+    return enhydris.context_processors.map(dummy_request)["map_js"]
+
+
+def _get_bounding_box(sgroup):
+    extent = sgroup.synopticgroupstation_set.aggregate(Extent("station__point"))[
+        "station__point__extent"
+    ]
+    extent = list(extent)
+    ensure_extent_is_large_enough(extent)
+    return extent
 
 
 def _render_group_stations(synoptic_group):

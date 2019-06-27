@@ -4,7 +4,7 @@
 
 {% block title %}
   {% blocktrans with name=object.station.name %}
-    Weather conditions at {{ name }}
+    Conditions at {{ name }}
   {% endblocktrans %}
 {% endblock %}
 
@@ -12,12 +12,12 @@
 {% block content %}
   {% block breadcrumbs %}
     <ol class="breadcrumb">
-      <li><a href="../../">{% blocktrans with name=object.synoptic_group.name %}{{ name }} meteorological report{% endblocktrans %}</a></li>
+      <li><a href="../../">{% blocktrans with name=object.synoptic_group.name %}{{ name }} current conditions report{% endblocktrans %}</a></li>
       {% url 'station_detail' object.station.id as station_page %}
-      <li class="active">{% blocktrans with name=object.station.name %}Weather conditions at <a href="{{ station_page }}">{{ name }}</a>{% endblocktrans %}</li>
+      <li class="active"><a href="{{ station_page }}">{{ object.station.name }}</a></li>
     </ol>
   {% endblock %}
-  <h1>{% blocktrans with name=object.station.name %}Weather conditions at {{ name }}{% endblocktrans %}</h1>
+  <h1>{% blocktrans with name=object.station.name %}Conditions at {{ name }}{% endblocktrans %}</h1>
   <div class="panel panel-default">
     <div class="panel-heading">{% trans "Latest measurements" %}</div>
     <div class="panel-body">

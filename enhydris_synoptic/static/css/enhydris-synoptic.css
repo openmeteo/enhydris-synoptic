@@ -1,0 +1,11 @@
+.leaflet-div-icon {
+    padding-left: 5px;
+}
+
+.old {
+    color: red;
+}
+
+.recent {
+    color: green;
+}

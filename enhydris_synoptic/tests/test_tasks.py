@@ -3,13 +3,17 @@ import os
 import shutil
 import tempfile
 import textwrap
+from unittest import skipUnless
 
 from django.conf import settings
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
 
 import numpy as np
+from django_selenium_clean import PageElement, SeleniumTestCase
 from enhydris.tests import RandomEnhydrisTimeseriesDataDir
+from freezegun import freeze_time
+from selenium.webdriver.common.by import By
 
 from enhydris_synoptic.tasks import create_static_files
 
@@ -204,3 +208,68 @@ class SynopticTestCase(TestCase):
         )
         np.testing.assert_allclose(data_array[0], desired_result[0])
         np.testing.assert_allclose(data_array[1], desired_result[1])
+
+
+@skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
+@RandomEnhydrisTimeseriesDataDir()
+class MapTestCase(SeleniumTestCase):
+
+    komboti_div_icon = PageElement(
+        By.XPATH,
+        '//div[contains(@class, "leaflet-div-icon") and .//a/text()="Komboti"]',
+    )
+
+    def setUp(self):
+        self.data = TestData()
+        settings.TEST_MATPLOTLIB = True
+        self._setup_synoptic_root()
+
+    def tearDown(self):
+        self._teardown_synoptic_root()
+        settings.TEST_MATPLOTLIB = False
+
+    def _setup_synoptic_root(self):
+        # We create synoptic root inside static files so that it will be served by
+        # the live server during testing (otherwise relative links to js/css/etc won't
+        # work)
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(this_dir)
+        static_dir = os.path.join(parent_dir, "static")
+        self.synoptic_root = os.path.join(static_dir, "synoptic")
+        if os.path.exists(self.synoptic_root):
+            raise Exception(
+                (
+                    "Directory {} exists; cowardly refusing to remove it. Delete it "
+                    "before running the unit tests."
+                ).format(self.synoptic_root)
+            )
+        self.saved_synoptic_root = settings.ENHYDRIS_SYNOPTIC_ROOT
+        settings.ENHYDRIS_SYNOPTIC_ROOT = self.synoptic_root
+
+    def _teardown_synoptic_root(self):
+        settings.ENHYDRIS_SYNOPTIC_ROOT = self.saved_synoptic_root
+        shutil.rmtree(self.synoptic_root)
+
+    @freeze_time("2015-10-22 14:20:01")
+    def test_outdated_date_shows_red(self):
+        create_static_files()
+        self.selenium.get(
+            "{}/static/synoptic/{}/index.html".format(
+                self.live_server_url, self.data.sg1.slug
+            )
+        )
+        self.komboti_div_icon.wait_until_is_displayed()
+        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        self.assertEqual(date.get_attribute("class"), "old")
+
+    @freeze_time("2015-10-22 14:19:59")
+    def test_up_to_date_date_shows_green(self):
+        create_static_files()
+        self.selenium.get(
+            "{}/static/synoptic/{}/index.html".format(
+                self.live_server_url, self.data.sg1.slug
+            )
+        )
+        self.komboti_div_icon.wait_until_is_displayed()
+        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        self.assertEqual(date.get_attribute("class"), "recent")
