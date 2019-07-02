@@ -1,4 +1,5 @@
 import datetime as dt
+import locale
 import os
 import shutil
 import tempfile
@@ -43,9 +44,7 @@ def days_since_epoch(y, mo, d, h, mi):
     return adelta.days + 1 + adelta.seconds / 86400.0
 
 
-@RandomEnhydrisTimeseriesDataDir()
-@RandomSynopticRoot()
-class SynopticTestCase(TestCase):
+class AssertHtmlContainsMixin:
     def assertHtmlContains(self, filename, text):
         """Check if a file contains an HTML extract.
 
@@ -54,10 +53,14 @@ class SynopticTestCase(TestCase):
         """
         # We implement it by converting to an HTTPResponse, because there is
         # no better way to use self.assertContains() to do the actual job.
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             response = HttpResponse(f.read())
         self.assertContains(response, text, html=True)
 
+
+@RandomEnhydrisTimeseriesDataDir()
+@RandomSynopticRoot()
+class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
@@ -100,7 +103,7 @@ class SynopticTestCase(TestCase):
                 """\
             <div class="panel panel-default">
               <div class="panel-heading">
-                <a href="station/{}/">Agios Athanasios</a>
+                <a href="station/{}/">Άγιος Αθανάσιος</a>
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
@@ -208,6 +211,25 @@ class SynopticTestCase(TestCase):
         )
         np.testing.assert_allclose(data_array[0], desired_result[0])
         np.testing.assert_allclose(data_array[1], desired_result[1])
+
+
+@RandomEnhydrisTimeseriesDataDir()
+@RandomSynopticRoot()
+class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
+    def setUp(self):
+        self.saved_locale = locale.setlocale(locale.LC_CTYPE)
+        locale.setlocale(locale.LC_CTYPE, "C")
+        self.data = TestData()
+
+    def tearDown(self):
+        locale.setlocale(locale.LC_CTYPE, self.saved_locale)
+
+    def test_uses_utf8_regardless_locale_setting(self):
+        create_static_files()
+        filename = os.path.join(
+            settings.ENHYDRIS_SYNOPTIC_ROOT, self.data.sg1.slug, "index.html"
+        )
+        self.assertHtmlContains(filename, "Άγιος Αθανάσιος")
 
 
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")

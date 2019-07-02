@@ -29,7 +29,7 @@ class TestData:
         )
         self.station_agios = mommy.make(
             Station,
-            name="Agios Athanasios",
+            name="Άγιος Αθανάσιος",
             point=Point(x=20.87591, y=39.14904, srid=4326),
         )
 

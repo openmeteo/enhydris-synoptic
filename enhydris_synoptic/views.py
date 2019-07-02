@@ -59,7 +59,8 @@ class File:
     def _write_to_temporary_file(self, s):
         self.temporary_full_pathname = self.full_pathname + ".1"
         mode = "wb" if isinstance(s, bytes) else "w"
-        with open(self.temporary_full_pathname, mode) as f:
+        encoding = None if isinstance(s, bytes) else "utf-8"
+        with open(self.temporary_full_pathname, mode, encoding=encoding) as f:
             f.write(s)
 
     def _atomically_replace_final_file(self):
