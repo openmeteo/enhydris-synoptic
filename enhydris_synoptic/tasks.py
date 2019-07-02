@@ -1,4 +1,5 @@
-from .celery import app
+from enhydris.celery import app
+
 from .models import SynopticGroup
 from .views import render_synoptic_group
 
