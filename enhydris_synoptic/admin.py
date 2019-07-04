@@ -21,7 +21,7 @@ class TimeseriesInline(admin.TabularInline):
 
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
         if db_field.name == "timeseries":
-            synopticgroupstation_id = int(request.resolver_match.args[0])
+            synopticgroupstation_id = int(request.resolver_match.kwargs["object_id"])
             station = SynopticGroupStation.objects.get(
                 id=synopticgroupstation_id
             ).station
