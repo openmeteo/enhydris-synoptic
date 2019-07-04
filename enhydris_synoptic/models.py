@@ -14,7 +14,7 @@ class SynopticGroup(models.Model):
         help_text=(
             "Maximum time that may have elapsed for the data to be considered fresh. "
             "For data older than this the date on the map shows red; for fresh data it "
-            "shows green."
+            "shows green. Specify it in seconds or in the format 'DD HH:MM:SS'."
         )
     )
 
