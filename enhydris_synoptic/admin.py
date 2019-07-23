@@ -46,6 +46,7 @@ class TimeseriesInline(admin.TabularInline):
 class GroupStationAdmin(admin.ModelAdmin):
     inlines = [TimeseriesInline]
     exclude = ["synoptic_group", "station", "order", "timeseries"]
+    list_filter = ["synoptic_group"]
 
     def has_add_permission(self, request, obj=None):
         return False
