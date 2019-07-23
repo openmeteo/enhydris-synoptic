@@ -83,7 +83,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-22 15:20 EET (+0200)</dd>
+                  <dt>Last update</dt><dd>22 Oct 2015 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0 mm</dd>
                   <dt>Air temperature</dt><dd>17 °C</dd>
@@ -107,7 +107,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
               </div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-23 15:20 EET (+0200)</dd>
+                  <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
@@ -136,7 +136,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
               <div class="panel-heading">Latest measurements</div>
               <div class="panel-body">
                 <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>2015-10-23 15:20 EET (+0200)</dd>
+                  <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
@@ -282,7 +282,7 @@ class MapTestCase(SeleniumTestCase):
         )
         self.komboti_div_icon.wait_until_is_displayed()
         date = self.komboti_div_icon.find_element_by_tag_name("span")
-        self.assertEqual(date.get_attribute("class"), "old")
+        self.assertEqual(date.get_attribute("class"), "date old")
 
     @freeze_time("2015-10-22 14:19:59")
     def test_up_to_date_date_shows_green(self):
@@ -294,4 +294,16 @@ class MapTestCase(SeleniumTestCase):
         )
         self.komboti_div_icon.wait_until_is_displayed()
         date = self.komboti_div_icon.find_element_by_tag_name("span")
-        self.assertEqual(date.get_attribute("class"), "recent")
+        self.assertEqual(date.get_attribute("class"), "date recent")
+
+    @freeze_time("2015-10-22 14:19:59")
+    def test_date_format(self):
+        create_static_files()
+        self.selenium.get(
+            "{}/static/synoptic/{}/index.html".format(
+                self.live_server_url, self.data.sg1.slug
+            )
+        )
+        self.komboti_div_icon.wait_until_is_displayed()
+        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        self.assertEqual(date.text, "22 Oct 2015 15:20 EET (+0200)")

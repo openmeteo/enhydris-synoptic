@@ -47,7 +47,7 @@
         name: "{{ object.station.name | truncatechars:13 }}",
         latitude: {{ object.station.point.y }},
         longitude: {{ object.station.point.x }},
-        last_common_date: "{{ object.last_common_date_iso }}",
+        last_common_date: "{{ object.last_common_date_pretty }}",
         freshness: "{{ object.freshness }}",
         last_values: {
           {% for synts in object.synoptic_timeseries %}

@@ -120,8 +120,8 @@ class SynopticGroupStation(models.Model):
         self._last_common_date = last_common_date
 
     @property
-    def last_common_date_iso(self):
-        return self.last_common_date.isoformat().replace("T", " ")[:16]
+    def last_common_date_pretty(self):
+        return self.last_common_date.strftime("%d %b %Y %H:%M %Z (%z)")
 
     @property
     def freshness(self):

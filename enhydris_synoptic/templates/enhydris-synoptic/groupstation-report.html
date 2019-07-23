@@ -9,7 +9,7 @@
 {% else %}
   {% localtime off %}
     <dl class="dl-horizontal">
-      <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date|date:"Y-m-d H:i e (O)" }}</dd>
+      <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date_pretty }}</dd>
       <dt>&nbsp;</dt><dd></dd>
       {% for synts in object.synoptic_timeseries %}
         <dt>
