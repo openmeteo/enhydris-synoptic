@@ -240,6 +240,28 @@ class MapTestCase(SeleniumTestCase):
         By.XPATH,
         '//div[contains(@class, "leaflet-div-icon") and .//a/text()="Komboti"]',
     )
+    layer_control = PageElement(By.XPATH, '//a[@class="leaflet-control-layers-toggle"]')
+    layer_control_rain = PageElement(
+        By.XPATH,
+        (
+            '//label[input[@class="leaflet-control-layers-selector"] '
+            'and span/text()=" Rain"]'
+        ),
+    )
+    layer_control_temperature = PageElement(
+        By.XPATH,
+        (
+            '//label[input[@class="leaflet-control-layers-selector"] '
+            'and span/text()=" Air temperature"]'
+        ),
+    )
+    layer_control_wind_gust = PageElement(
+        By.XPATH,
+        (
+            '//label[input[@class="leaflet-control-layers-selector"] '
+            'and span/text()=" Wind (gust)"]'
+        ),
+    )
 
     def setUp(self):
         self.data = TestData()
@@ -307,3 +329,29 @@ class MapTestCase(SeleniumTestCase):
         self.komboti_div_icon.wait_until_is_displayed()
         date = self.komboti_div_icon.find_element_by_tag_name("span")
         self.assertEqual(date.text, "22 Oct 2015 15:20 EET (+0200)")
+
+    def test_value_status(self):
+        create_static_files()
+        self.selenium.get(
+            "{}/static/synoptic/{}/index.html".format(
+                self.live_server_url, self.data.sg1.slug
+            )
+        )
+        self.layer_control.wait_until_is_displayed()
+        self.layer_control.click()
+        self.layer_control_rain.wait_until_is_displayed()
+
+        # Rain should be ok
+        self.layer_control_rain.click()
+        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        self.assertEqual(value.get_attribute("class"), "value ok")
+
+        # Wind gust should be high
+        self.layer_control_wind_gust.click()
+        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        self.assertEqual(value.get_attribute("class"), "value high")
+
+        # Temperature should be low
+        self.layer_control_temperature.click()
+        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        self.assertEqual(value.get_attribute("class"), "value low")

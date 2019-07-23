@@ -51,10 +51,16 @@
         freshness: "{{ object.freshness }}",
         last_values: {
           {% for synts in object.synoptic_timeseries %}
-            "{{ synts.title|default:synts.timeseries.name }}":
+            "{{ synts.full_name }}":
             {% with precision=synts.timeseries.precision|default:0 %}
               "{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}"
             {% endwith %}
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+        },
+        last_values_status: {
+          {% for synts in object.synoptic_timeseries %}
+            "{{ synts.full_name }}": "{{ synts.value_status }}"
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         },

@@ -77,8 +77,10 @@ class SynopticGroupStation(models.Model):
         """List of synoptic timeseries objects with data.
 
         The objects in the list have attribute "data", which is a pandas dataframe with
-        the last 24 hours preceding the last common date, and "value", which is the
-        value at the last common date.
+        the last 24 hours preceding the last common date, "value", which is the
+        value at the last common date, and "value_status" which is the string "ok",
+        "high" or "low", depending on where "value" is compared to low_limit and
+        high_limit.
         """
         if not hasattr(self, "_synoptic_timeseries"):
             self._determine_timeseries()
@@ -93,6 +95,7 @@ class SynopticGroupStation(models.Model):
                 start_date=start_date, end_date=self.last_common_date
             ).data
             self._set_ts_value(asynts)
+            self._set_ts_value_status(asynts)
 
     def _set_ts_value(self, asynts):
         try:
@@ -101,6 +104,16 @@ class SynopticGroupStation(models.Model):
             ]
         except KeyError:
             self.error = True
+
+    def _set_ts_value_status(self, asynts):
+        if not hasattr(asynts, "value") or asynts.value is None:
+            asynts.value_status = "error"
+        elif asynts.low_limit is not None and asynts.value < asynts.low_limit:
+            asynts.value_status = "low"
+        elif asynts.high_limit is not None and asynts.value > asynts.high_limit:
+            asynts.value_status = "high"
+        else:
+            asynts.value_status = "ok"
 
     @property
     def last_common_date(self):
@@ -151,6 +164,20 @@ class SynopticTimeseries(models.Model):
             "layer on the map. Leave empty to use the time series name."
         ),
     )
+    low_limit = models.FloatField(
+        blank=True,
+        null=True,
+        help_text=_(
+            "If the variable goes lower than this, it will be shown red on the map."
+        ),
+    )
+    high_limit = models.FloatField(
+        blank=True,
+        null=True,
+        help_text=_(
+            "If the variable goes higher than this, it will be shown red on the map."
+        ),
+    )
     group_with = models.ForeignKey(
         "self",
         blank=True,
@@ -199,7 +226,7 @@ class SynopticTimeseries(models.Model):
         verbose_name_plural = "Synoptic timeseries"
 
     def __str__(self):
-        return str(self.synoptic_group_station) + " - " + self.get_full_name()
+        return str(self.synoptic_group_station) + " - " + self.full_name
 
     def get_title(self):
         return self.title or self.timeseries.name
@@ -207,7 +234,8 @@ class SynopticTimeseries(models.Model):
     def get_subtitle(self):
         return self.subtitle or self.timeseries.name
 
-    def get_full_name(self):
+    @property
+    def full_name(self):
         result = self.get_title()
         if self.subtitle:
             result += " (" + self.subtitle + ")"

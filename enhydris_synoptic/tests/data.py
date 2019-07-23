@@ -128,6 +128,7 @@ class TestData:
             synoptic_group_station=self.sgs_komboti,
             timeseries=self.ts_komboti_temperature,
             order=2,
+            low_limit=17.1,
         )
         self.sts1_3 = mommy.make(
             SynopticTimeseries,
@@ -145,6 +146,7 @@ class TestData:
             subtitle="gust",
             group_with=self.sts1_3,
             order=4,
+            high_limit=4,
         )
 
     def _create_synoptic_timeseries_for_agios(self):
