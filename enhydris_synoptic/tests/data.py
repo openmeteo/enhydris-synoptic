@@ -4,7 +4,7 @@ from io import StringIO
 
 from django.contrib.gis.geos import Point
 
-from enhydris.models import Station, Timeseries
+from enhydris.models import Station, Timeseries, Variable
 from model_mommy import mommy
 
 from enhydris_synoptic.models import (
@@ -19,6 +19,7 @@ class TestData:
         self._create_stations()
         self._create_synoptic_group()
         self._create_synoptic_group_stations()
+        self._create_variables()
         self._create_timeseries()
         self._create_synoptic_timeseries()
         self._create_timeseries_data()
@@ -52,6 +53,12 @@ class TestData:
             order=2,
         )
 
+    def _create_variables(self):
+        self.var_rain = mommy.make(Variable, descr="Rain")
+        self.var_temperature = mommy.make(Variable, descr="Temperature")
+        self.var_wind_speed = mommy.make(Variable, descr="Wind speed")
+        self.var_wind_gust = mommy.make(Variable, descr="Wind gust")
+
     def _create_timeseries(self):
         self._create_timeseries_for_komboti()
         self._create_timeseries_for_agios()
@@ -60,7 +67,9 @@ class TestData:
         self.ts_komboti_rain = mommy.make(
             Timeseries,
             gentity=self.station_komboti,
+            variable=self.var_rain,
             name="Rain",
+            precision=0,
             unit_of_measurement__symbol="mm",
             time_zone__code="EET",
             time_zone__utc_offset=120,
@@ -68,7 +77,9 @@ class TestData:
         self.ts_komboti_temperature = mommy.make(
             Timeseries,
             gentity=self.station_komboti,
+            variable=self.var_temperature,
             name="Air temperature",
+            precision=0,
             unit_of_measurement__symbol="°C",
             time_zone__code="EET",
             time_zone__utc_offset=120,
@@ -76,6 +87,7 @@ class TestData:
         self.ts_komboti_wind_speed = mommy.make(
             Timeseries,
             gentity=self.station_komboti,
+            variable=self.var_wind_speed,
             name="Wind speed",
             precision=1,
             unit_of_measurement__symbol="m/s",
@@ -85,6 +97,7 @@ class TestData:
         self.ts_komboti_wind_gust = mommy.make(
             Timeseries,
             gentity=self.station_komboti,
+            variable=self.var_wind_gust,
             name="Wind gust",
             precision=1,
             unit_of_measurement__symbol="m/s",
@@ -96,6 +109,7 @@ class TestData:
         self.ts_agios_rain = mommy.make(
             Timeseries,
             gentity=self.station_agios,
+            variable=self.var_rain,
             name="Rain",
             precision=1,
             unit_of_measurement__symbol="mm",
@@ -105,6 +119,7 @@ class TestData:
         self.ts_agios_temperature = mommy.make(
             Timeseries,
             gentity=self.station_agios,
+            variable=self.var_temperature,
             name="Air temperature",
             precision=1,
             unit_of_measurement__symbol="°C",

@@ -6,11 +6,11 @@ to do such offline rendering. It doesn't know about requests and responses, and 
 doesn't know about HTTP. But logically it's the "views" part of a Django app.
 """
 import os
-from collections import namedtuple
 from io import BytesIO
 
 from django.conf import settings
 from django.contrib.gis.db.models import Extent
+from django.http import HttpRequest
 from django.template.loader import render_to_string
 
 import matplotlib
@@ -102,7 +102,7 @@ def _render_only_group(synoptic_group):
 
 
 def _get_map_js(sgroup):
-    dummy_request = namedtuple("dummy_request", ["map_viewport"])
+    dummy_request = HttpRequest()
     dummy_request.map_viewport = _get_bounding_box(sgroup)
     return enhydris.context_processors.map(dummy_request)["map_js"]
 
