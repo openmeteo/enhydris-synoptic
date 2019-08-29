@@ -33,6 +33,9 @@ class TestData:
             name="Άγιος Αθανάσιος",
             point=Point(x=20.87591, y=39.14904, srid=4326),
         )
+        self.station_arta = mommy.make(
+            Station, name="Arta", point=Point(x=20.97527, y=39.15104, srid=4326)
+        )
 
     def _create_synoptic_group(self):
         self.sg1 = mommy.make(
@@ -51,6 +54,15 @@ class TestData:
             synoptic_group=self.sg1,
             station=self.station_agios,
             order=2,
+        )
+
+        # We fail to create synoptic time series for the following station, but we
+        # have it in the group, to verify it will be ignored.
+        self.sgs_arta = mommy.make(
+            SynopticGroupStation,
+            synoptic_group=self.sg1,
+            station=self.station_arta,
+            order=3,
         )
 
     def _create_variables(self):

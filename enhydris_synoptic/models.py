@@ -87,6 +87,9 @@ class SynopticGroupStation(models.Model):
         return self._synoptic_timeseries
 
     def _determine_timeseries(self):
+        if self.last_common_date is None:
+            self._synoptic_timeseries = []
+            return
         start_date = self.last_common_date - dt.timedelta(minutes=1339)
         self._synoptic_timeseries = list(self.synoptictimeseries_set.all())
         self.error = False  # This may be changed by _set_ts_value()
@@ -134,10 +137,14 @@ class SynopticGroupStation(models.Model):
 
     @property
     def last_common_date_pretty(self):
-        return self.last_common_date.strftime("%d %b %Y %H:%M %Z (%z)")
+        return self.last_common_date and self.last_common_date.strftime(
+            "%d %b %Y %H:%M %Z (%z)"
+        )
 
     @property
     def freshness(self):
+        if self.last_common_date is None:
+            return "old"
         oldness = dt.datetime.now(dt.timezone.utc) - self.last_common_date
         is_old = oldness > self.synoptic_group.fresh_time_limit
         return "old" if is_old else "recent"
