@@ -26,15 +26,15 @@ class TestData:
 
     def _create_stations(self):
         self.station_komboti = mommy.make(
-            Station, name="Komboti", point=Point(x=21.06071, y=39.09518, srid=4326)
+            Station, name="Komboti", geom=Point(x=21.06071, y=39.09518, srid=4326)
         )
         self.station_agios = mommy.make(
             Station,
             name="Άγιος Αθανάσιος",
-            point=Point(x=20.87591, y=39.14904, srid=4326),
+            geom=Point(x=20.87591, y=39.14904, srid=4326),
         )
         self.station_arta = mommy.make(
-            Station, name="Arta", point=Point(x=20.97527, y=39.15104, srid=4326)
+            Station, name="Arta", geom=Point(x=20.97527, y=39.15104, srid=4326)
         )
 
     def _create_synoptic_group(self):

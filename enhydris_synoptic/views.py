@@ -108,8 +108,8 @@ def _get_map_js(sgroup):
 
 
 def _get_bounding_box(sgroup):
-    extent = sgroup.synopticgroupstation_set.aggregate(Extent("station__point"))[
-        "station__point__extent"
+    extent = sgroup.synopticgroupstation_set.aggregate(Extent("station__geom"))[
+        "station__geom__extent"
     ]
     extent = list(extent)
     ensure_extent_is_large_enough(extent)
