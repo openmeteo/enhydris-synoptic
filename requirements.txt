@@ -1,2 +1,2 @@
-matplotlib>=1.5.3,<2
+matplotlib>=3,<4
 celery>=4,<5
