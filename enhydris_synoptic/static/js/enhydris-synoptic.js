@@ -14,10 +14,10 @@ var _setupMarkers = function (data_layers) {
             // Rectangle with info
             html = (
                 "<strong><a href='station/" + station.id + "/'>" + station.name + "</a></strong><br>" +
-                "<span class='date " + station.freshness + "'>" + station.last_common_date + "</span><br>" +
+                "<span class='date " + station.freshness + "'>" + station.last_common_date_pretty_without_timezone + "</span><br>" +
                 "<span class='value " + station.last_values_status[key] + "'>" + station.last_values[key] + "</span>"
             )
-            icon = L.divIcon({html: html, iconSize: [170, 55], iconAnchor: [173, 58]});
+            icon = L.divIcon({html: html, iconSize: [105, 55], iconAnchor: [108, 58]});
             L.marker([station.latitude, station.longitude], {icon: icon}).addTo(
                 data_layers[key]
             );

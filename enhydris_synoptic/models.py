@@ -3,13 +3,14 @@ import datetime as dt
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
-from enhydris.models import Station, Timeseries
+from enhydris.models import Station, Timeseries, TimeZone
 
 
 class SynopticGroup(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True, help_text="Identifier to be used in URL")
     stations = models.ManyToManyField(Station, through="SynopticGroupStation")
+    time_zone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
     fresh_time_limit = models.DurationField(
         help_text=(
             "Maximum time that may have elapsed for the data to be considered fresh. "
@@ -140,6 +141,12 @@ class SynopticGroupStation(models.Model):
         return self.last_common_date and self.last_common_date.strftime(
             "%d %b %Y %H:%M %Z (%z)"
         )
+
+    @property
+    def last_common_date_pretty_without_timezone(self):
+        return self.last_common_date and self.last_common_date.astimezone(
+            self.synoptic_group.time_zone.as_tzinfo
+        ).strftime("%d %b %Y %H:%M")
 
     @property
     def freshness(self):

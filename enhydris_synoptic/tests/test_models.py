@@ -5,7 +5,7 @@ from io import StringIO
 from django.db import IntegrityError
 from django.test import TestCase
 
-from enhydris.models import Station, Timeseries
+from enhydris.models import Station, Timeseries, TimeZone
 from enhydris.tests import RandomEnhydrisTimeseriesDataDir
 from freezegun import freeze_time
 from model_mommy import mommy
@@ -22,7 +22,10 @@ from .data import TestData
 class SynopticGroupTestCase(TestCase):
     def test_create(self):
         sg = SynopticGroup(
-            name="hello", slug="world", fresh_time_limit=dt.timedelta(minutes=60)
+            name="hello",
+            slug="world",
+            fresh_time_limit=dt.timedelta(minutes=60),
+            time_zone=TimeZone.objects.create(code="EET", utc_offset=120),
         )
         sg.save()
         self.assertEqual(SynopticGroup.objects.first().slug, "world")
@@ -86,7 +89,9 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
 
         # Create SynopticGroup
         sg1 = SynopticGroup.objects.create(
-            slug="mygroup", fresh_time_limit=dt.timedelta(minutes=10)
+            slug="mygroup",
+            fresh_time_limit=dt.timedelta(minutes=10),
+            time_zone=TimeZone.objects.create(code="EET", utc_offset=120),
         )
 
         # Create SynopticGroupStation
@@ -144,6 +149,17 @@ class LastCommonDateTestCase(TestCase):
             dt.datetime(
                 2015, 10, 23, 15, 20, tzinfo=dt.timezone(dt.timedelta(hours=2), "EET")
             ),
+        )
+
+    def test_last_common_date_pretty(self):
+        self.assertEqual(
+            self.data.sgs_agios.last_common_date_pretty, "23 Oct 2015 15:20 EET (+0200)"
+        )
+
+    def test_last_common_date_pretty_without_timezone(self):
+        self.assertEqual(
+            self.data.sgs_agios.last_common_date_pretty_without_timezone,
+            "23 Oct 2015 14:20",
         )
 
 

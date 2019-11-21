@@ -328,7 +328,7 @@ class MapTestCase(SeleniumTestCase):
         )
         self.komboti_div_icon.wait_until_is_displayed()
         date = self.komboti_div_icon.find_element_by_tag_name("span")
-        self.assertEqual(date.text, "22 Oct 2015 15:20 EET (+0200)")
+        self.assertEqual(date.text, "22 Oct 2015 14:20")
 
     def test_value_status(self):
         create_static_files()

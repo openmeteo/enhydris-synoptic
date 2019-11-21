@@ -4,7 +4,7 @@ from io import StringIO
 
 from django.contrib.gis.geos import Point
 
-from enhydris.models import Station, Timeseries, Variable
+from enhydris.models import Station, Timeseries, TimeZone, Variable
 from model_mommy import mommy
 
 from enhydris_synoptic.models import (
@@ -39,7 +39,10 @@ class TestData:
 
     def _create_synoptic_group(self):
         self.sg1 = mommy.make(
-            SynopticGroup, slug="mygroup", fresh_time_limit=dt.timedelta(minutes=60)
+            SynopticGroup,
+            slug="mygroup",
+            fresh_time_limit=dt.timedelta(minutes=60),
+            time_zone=TimeZone.objects.create(code="CET", utc_offset=60),
         )
 
     def _create_synoptic_group_stations(self):
