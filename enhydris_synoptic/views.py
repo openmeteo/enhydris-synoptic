@@ -93,18 +93,16 @@ def render_synoptic_group(synoptic_group):
 
 
 def _render_only_group(synoptic_group):
-    output = render_to_string(
-        "enhydris-synoptic/group.html",
-        context={"object": synoptic_group, "map_js": _get_map_js(synoptic_group)},
-    )
+    context = {"object": synoptic_group, **_get_map_context(synoptic_group)}
+    output = render_to_string("enhydris-synoptic/group.html", context=context)
     filename = os.path.join(synoptic_group.slug, "index.html")
     File(filename).write(output)
 
 
-def _get_map_js(sgroup):
+def _get_map_context(sgroup):
     dummy_request = HttpRequest()
     dummy_request.map_viewport = _get_bounding_box(sgroup)
-    return enhydris.context_processors.map(dummy_request)["map_js"]
+    return enhydris.context_processors.map(dummy_request)
 
 
 def _get_bounding_box(sgroup):

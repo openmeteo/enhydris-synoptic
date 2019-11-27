@@ -40,7 +40,11 @@
   <script type="text/javascript" src="{% static "js/L.Control.MousePosition.js" %}"></script>
   <script type="text/javascript" src="{% static "js/leaflet.groupedlayercontrol.min.js" %}"></script>
   <script type="text/javascript">
-    {{ map_js | safe }}
+    enhydris.mapBaseLayers = {{ map_base_layers|safe }};
+    enhydris.mapDefaultBaseLayer = "{{ map_default_base_layer|safe }}";
+    enhydris.mapViewport = {{ map_viewport|safe }};
+    enhydris.mapMarkers = {{ map_markers|safe }};
+    enhydris.searchString = {{ searchString|safe }};
     enhydris.mapStations = [];
     {% for object in object.synopticgroupstation_set.all %}
       enhydris.mapStations.push({
