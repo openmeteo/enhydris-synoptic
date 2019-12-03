@@ -173,6 +173,7 @@ class Chart:
                 self.gydata = self.ydata
 
     def _change_plot_limits(self):
+        self.ax.set_xlim(self.xdata[0], self.xdata[-1])
         self.xmin, self.xmax, self.ymin, self.ymax = self.ax.axis()
         if self.current_synoptic_timeseries.default_chart_min:
             self.ymin = min(

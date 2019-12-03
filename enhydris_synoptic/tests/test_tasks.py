@@ -111,6 +111,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
+                  <dt>Wind speed</dt><dd>nan m/s</dd>
                 </dl>
               </div>
             </div>
@@ -140,6 +141,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
                   <dt>&nbsp;</dt><dd></dd>
                   <dt>Rain</dt><dd>0.2 mm</dd>
                   <dt>Air temperature</dt><dd>38.5 °C</dd>
+                  <dt>Wind speed</dt><dd>nan m/s</dd>
                 </dl>
               </div>
             </div>

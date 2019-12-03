@@ -141,6 +141,16 @@ class TestData:
             time_zone__code="EET",
             time_zone__utc_offset=120,
         )
+        self.ts_agios_wind_speed = mommy.make(
+            Timeseries,
+            gentity=self.station_agios,
+            variable=self.var_wind_speed,
+            name="Wind speed",
+            precision=1,
+            unit_of_measurement__symbol="m/s",
+            time_zone__code="EET",
+            time_zone__utc_offset=120,
+        )
 
     def _create_synoptic_timeseries(self):
         self._create_synoptic_timeseries_for_komboti()
@@ -192,6 +202,12 @@ class TestData:
             timeseries=self.ts_agios_temperature,
             order=2,
         )
+        self.sts2_3 = mommy.make(
+            SynopticTimeseries,
+            synoptic_group_station=self.sgs_agios,
+            timeseries=self.ts_agios_wind_speed,
+            order=3,
+        )
 
     def _create_timeseries_data(self):
         self._create_timeseries_data_for_komboti_rain()
@@ -200,16 +216,17 @@ class TestData:
         self._create_timeseries_data_for_komboti_wind_gust()
         self._create_timeseries_data_for_agios_rain()
         self._create_timeseries_data_for_agios_temperature()
+        self._create_timeseries_data_for_agios_wind_speed()
 
     def _create_timeseries_data_for_komboti_rain(self):
         self.ts_komboti_rain.set_data(
             StringIO(
                 textwrap.dedent(
                     """\
-            2015-10-22 15:00,0,
-            2015-10-22 15:10,0,
-            2015-10-22 15:20,0,
-            """
+                    2015-10-22 15:00,0,
+                    2015-10-22 15:10,0,
+                    2015-10-22 15:20,0,
+                    """
                 )
             )
         )
@@ -272,10 +289,32 @@ class TestData:
             StringIO(
                 textwrap.dedent(
                     """\
-            2015-10-23 15:00,40,
-            2015-10-23 15:10,39,
-            2015-10-23 15:20,38.5,
-            """
+                    2015-10-23 15:00,40,
+                    2015-10-23 15:10,39,
+                    2015-10-23 15:20,38.5,
+                    """
+                )
+            )
+        )
+
+    def _create_timeseries_data_for_agios_wind_speed(self):
+        # We had this problem where a station was sending too many null values and was
+        # resulting in a RuntimeError. The reason was that we were not running
+        # set_xlim() to explicitly set the range of the horizontal axis of the chart.
+        # If set_xlim() is not used, matplotlib sets it automatically, but if there are
+        # null values at the beginning or end of the time series it doesn't set it as
+        # we need, and later it had trouble when setting the ticks (the error was too
+        # many ticks). So we add a time series full of nulls to test this case. It still
+        # has the problem that in the report it shows "nan m/s" instead of something
+        # more elegant, but we'll fix this another time.
+        self.ts_agios_wind_speed.set_data(
+            StringIO(
+                textwrap.dedent(
+                    """\
+                    2015-10-23 15:00,,
+                    2015-10-23 15:10,,
+                    2015-10-23 15:20,,
+                    """
                 )
             )
         )
