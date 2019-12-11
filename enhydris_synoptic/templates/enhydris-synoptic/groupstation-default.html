@@ -2,6 +2,17 @@
 {% load i18n %}
 
 
+{% block extra_head %}
+  {{ block.super }}
+  <style>
+    div#content {
+        max-width: 45em;
+        margin: 0 auto;
+    }
+  </style>
+{% endblock %}
+
+
 {% block title %}
   {% blocktrans with name=object.station.name %}
     Conditions at {{ name }}
@@ -17,20 +28,22 @@
       <li class="active"><a href="{{ station_page }}">{{ object.station.name }}</a></li>
     </ol>
   {% endblock %}
-  <h1>{% blocktrans with name=object.station.name %}Conditions at {{ name }}{% endblocktrans %}</h1>
-  <div class="panel panel-default">
-    <div class="panel-heading">{% trans "Latest measurements" %}</div>
-    <div class="panel-body">
-      {% include "enhydris-synoptic/groupstation-report.html" %}
+  <div id="content">
+    <h1>{% blocktrans with name=object.station.name %}Conditions at {{ name }}{% endblocktrans %}</h1>
+    <div class="panel panel-default">
+      <div class="panel-heading">{% trans "Latest measurements" %}</div>
+      <div class="panel-body">
+        {% include "enhydris-synoptic/groupstation-report.html" %}
+      </div>
     </div>
-  </div>
-  <div class="charts">
-    <center>
-      {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
-        <h2>{{ synoptic_timeseries.get_title }}</h2>
-        <img src="../../../chart/{{ synoptic_timeseries.id }}.png">
-        <hr>
-      {% endfor %}
-    </center>
+    <div class="charts">
+      <center>
+        {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
+          <h2>{{ synoptic_timeseries.get_title }}</h2>
+          <img src="../../../chart/{{ synoptic_timeseries.id }}.png">
+          <hr>
+        {% endfor %}
+      </center>
+    </div>
   </div>
 {% endblock %}

@@ -69,58 +69,6 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
     def tearDown(self):
         settings.TEST_MATPLOTLIB = False
 
-    def test_synoptic_group(self):
-        filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, self.data.sg1.slug, "index.html"
-        )
-        self.assertHtmlContains(
-            filename,
-            text=textwrap.dedent(
-                """\
-            <div class="panel panel-default">
-              <div class="panel-heading">
-                <a href="station/{}/">Komboti</a>
-              </div>
-              <div class="panel-body">
-                <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>22 Oct 2015 15:20 EET (+0200)</dd>
-                  <dt>&nbsp;</dt><dd></dd>
-                  <dt>Rain</dt><dd>0 mm</dd>
-                  <dt>Air temperature</dt><dd>17 °C</dd>
-                  <dt>Wind (speed)</dt><dd>3.0 m/s</dd>
-                  <dt>Wind (gust)</dt><dd>4.1 m/s</dd>
-                </dl>
-              </div>
-            </div>
-            """.format(
-                    self.data.sgs_komboti.id
-                )
-            ),
-        )
-        self.assertHtmlContains(
-            filename,
-            text=textwrap.dedent(
-                """\
-            <div class="panel panel-default">
-              <div class="panel-heading">
-                <a href="station/{}/">Άγιος Αθανάσιος</a>
-              </div>
-              <div class="panel-body">
-                <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
-                  <dt>&nbsp;</dt><dd></dd>
-                  <dt>Rain</dt><dd>0.2 mm</dd>
-                  <dt>Air temperature</dt><dd>38.5 °C</dd>
-                  <dt>Wind speed</dt><dd>nan m/s</dd>
-                </dl>
-              </div>
-            </div>
-            """.format(
-                    self.data.sgs_agios.id
-                )
-            ),
-        )
-
     def test_synoptic_station(self):
         filename = os.path.join(
             settings.ENHYDRIS_SYNOPTIC_ROOT,
@@ -229,7 +177,11 @@ class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
     def test_uses_utf8_regardless_locale_setting(self):
         create_static_files()
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, self.data.sg1.slug, "index.html"
+            settings.ENHYDRIS_SYNOPTIC_ROOT,
+            self.data.sg1.slug,
+            "station",
+            str(self.data.sgs_agios.id),
+            "index.html",
         )
         self.assertHtmlContains(filename, "Άγιος Αθανάσιος")
 
