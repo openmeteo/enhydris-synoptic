@@ -1,5 +1,7 @@
 .leaflet-div-icon {
     padding-left: 5px;
+    border: none;
+    opacity: 75%;
 }
 
 .date {
