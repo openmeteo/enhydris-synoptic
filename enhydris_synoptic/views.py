@@ -160,7 +160,7 @@ class Chart:
 
     def _draw_lines(self):
         for i, s in enumerate(self._synoptic_timeseries):
-            if not len(s.data):
+            if len(s.data) <= 1:
                 self._set_chart_empty()
             else:
                 self._plot_line(i, s)

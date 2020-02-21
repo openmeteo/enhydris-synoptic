@@ -332,3 +332,25 @@ class EmptyTimeseriesTestCase(TestCase):
         # Check that the array was made from empty data
         datastr = open(filename.replace("png", "dat")).read()
         self.assertEqual(datastr, "()")
+
+
+@RandomEnhydrisTimeseriesDataDir()
+@RandomSynopticRoot()
+class TimeseriesWithOneRecordTestCase(TestCase):
+    def setUp(self):
+        self.data = TestData()
+        settings.TEST_MATPLOTLIB = True
+        self.data.ts_komboti_temperature.set_data(StringIO("2015-10-22 15:10,0,\n"))
+        create_static_files()
+
+    def test_chart(self):
+        # Check that the chart is a png of substantial length
+        filename = os.path.join(
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+        )
+        self.assertTrue(filename.endswith(".png"))
+        self.assertGreater(os.stat(filename).st_size, 100)
+
+        # Check that the array was made from empty data
+        datastr = open(filename.replace("png", "dat")).read()
+        self.assertEqual(datastr, "()")
