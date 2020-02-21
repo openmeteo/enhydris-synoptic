@@ -129,10 +129,11 @@ class Chart:
         self._reorder_groupped_timeseries()
         self._setup_plot()
         self._draw_lines()
-        self._change_plot_limits()
-        self._fill()
-        self._set_x_ticks_and_labels()
-        self._set_gridlines_and_legend()
+        if len(self.xdata):
+            self._change_plot_limits()
+            self._fill()
+            self._set_x_ticks_and_labels()
+            self._set_gridlines_and_legend()
         self._create_and_save_plot()
         self._write_data_to_file_for_unit_testing()
 
@@ -158,19 +159,28 @@ class Chart:
         self.ax = self.fig.add_subplot(1, 1, 1)
 
     def _draw_lines(self):
-        # We use matplotlib's plot() instead of pandas's wrapper, because otherwise
-        # there is trouble modifying the x axis labels (see
-        # http://stackoverflow.com/questions/12945971/).
         for i, s in enumerate(self._synoptic_timeseries):
-            self.xdata = s.data.index.to_pydatetime()
-            self.ydata = s.data["value"]
-            self.ax.plot(
-                self.xdata, self.ydata, color=self._get_color(i), label=s.get_subtitle()
-            )
+            if not len(s.data):
+                self._set_chart_empty()
+            else:
+                self._plot_line(i, s)
             if i == 0:
                 # We will later need the data of the first time series, in
                 # order to fill the chart
                 self.gydata = self.ydata
+
+    def _set_chart_empty(self):
+        self.xdata = self.ydata = []
+
+    def _plot_line(self, i, synts):
+        # We use matplotlib's plot() instead of pandas's wrapper, because otherwise
+        # there is trouble modifying the x axis labels (see
+        # http://stackoverflow.com/questions/12945971/).
+        self.xdata = synts.data.index.to_pydatetime()
+        self.ydata = synts.data["value"]
+        self.ax.plot(
+            self.xdata, self.ydata, color=self._get_color(i), label=synts.get_subtitle()
+        )
 
     def _change_plot_limits(self):
         self.ax.set_xlim(self.xdata[0], self.xdata[-1])

@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import textwrap
+from io import StringIO
 from unittest import skipUnless
 
 from django.conf import settings
@@ -309,3 +310,25 @@ class MapTestCase(SeleniumTestCase):
         self.layer_control_temperature.click()
         value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
         self.assertEqual(value.get_attribute("class"), "value low")
+
+
+@RandomEnhydrisTimeseriesDataDir()
+@RandomSynopticRoot()
+class EmptyTimeseriesTestCase(TestCase):
+    def setUp(self):
+        self.data = TestData()
+        settings.TEST_MATPLOTLIB = True
+        self.data.ts_komboti_temperature.set_data(StringIO(""))
+        create_static_files()
+
+    def test_chart(self):
+        # Check that the chart is a png of substantial length
+        filename = os.path.join(
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+        )
+        self.assertTrue(filename.endswith(".png"))
+        self.assertGreater(os.stat(filename).st_size, 100)
+
+        # Check that the array was made from empty data
+        datastr = open(filename.replace("png", "dat")).read()
+        self.assertEqual(datastr, "()")
