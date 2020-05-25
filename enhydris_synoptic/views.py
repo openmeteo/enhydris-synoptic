@@ -21,11 +21,11 @@ import matplotlib
 # isort:skip_file
 matplotlib.use("AGG")  # NOQA
 
-import enhydris.context_processors
-import matplotlib.pyplot as plt
-import pandas.plotting
-from enhydris.views_common import ensure_extent_is_large_enough
-from matplotlib.dates import DateFormatter, DayLocator, HourLocator
+import enhydris.context_processors  # NOQA
+import matplotlib.pyplot as plt  # NOQA
+import pandas.plotting  # NOQA
+from enhydris.views_common import ensure_extent_is_large_enough  # NOQA
+from matplotlib.dates import DateFormatter, DayLocator, HourLocator  # NOQA
 
 pandas.plotting.register_matplotlib_converters()
 
