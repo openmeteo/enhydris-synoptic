@@ -12,8 +12,8 @@ from django.http import HttpResponse
 from django.test import TestCase, override_settings
 
 import numpy as np
-from django_selenium_clean import PageElement, SeleniumTestCase
-from enhydris.tests import RandomEnhydrisTimeseriesDataDir
+from django_selenium_clean import PageElement
+from enhydris.tests.test_views import SeleniumTestCase
 from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 
@@ -59,7 +59,6 @@ class AssertHtmlContainsMixin:
         self.assertContains(response, text, html=True)
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
     def setUp(self):
@@ -164,7 +163,6 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
         np.testing.assert_allclose(data_array[1], desired_result[1])
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
     def setUp(self):
@@ -188,7 +186,6 @@ class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
 
 
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
-@RandomEnhydrisTimeseriesDataDir()
 class MapTestCase(SeleniumTestCase):
 
     komboti_div_icon = PageElement(
@@ -312,7 +309,6 @@ class MapTestCase(SeleniumTestCase):
         self.assertEqual(value.get_attribute("class"), "value low")
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class EmptyTimeseriesTestCase(TestCase):
     def setUp(self):
@@ -334,7 +330,6 @@ class EmptyTimeseriesTestCase(TestCase):
         self.assertEqual(datastr, "()")
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class TimeseriesWithOneRecordTestCase(TestCase):
     def setUp(self):

@@ -6,7 +6,6 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from enhydris.models import Station, Timeseries, TimeZone
-from enhydris.tests import RandomEnhydrisTimeseriesDataDir
 from freezegun import freeze_time
 from model_mommy import mommy
 
@@ -138,7 +137,6 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
         self.sgs1.check_timeseries_integrity()  # No exception thrown
 
 
-@RandomEnhydrisTimeseriesDataDir()
 class LastCommonDateTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
@@ -163,7 +161,6 @@ class LastCommonDateTestCase(TestCase):
         )
 
 
-@RandomEnhydrisTimeseriesDataDir()
 class SynopticGroupStationSynopticTimeseriesTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
@@ -175,7 +172,6 @@ class SynopticGroupStationSynopticTimeseriesTestCase(TestCase):
         self.assertEqual(len(self.data.sgs_agios.synoptic_timeseries[0].data), 2)
 
 
-@RandomEnhydrisTimeseriesDataDir()
 class FreshnessTestCase(TestCase):
     def setUp(self):
         self.st = mommy.make(
