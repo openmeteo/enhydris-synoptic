@@ -91,7 +91,7 @@ class SynopticGroupStation(models.Model):
         if self.last_common_date is None:
             self._synoptic_timeseries = []
             return
-        start_date = self.last_common_date - dt.timedelta(minutes=1339)
+        start_date = self.last_common_date - dt.timedelta(minutes=1439)
         self._synoptic_timeseries = list(self.synoptictimeseries_set.all())
         self.error = False  # This may be changed by _set_ts_value()
         for asynts in self._synoptic_timeseries:
