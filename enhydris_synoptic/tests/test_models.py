@@ -5,10 +5,10 @@ from io import StringIO
 from django.db import IntegrityError
 from django.test import TestCase
 
-from enhydris.models import Station, Timeseries, TimeZone
 from freezegun import freeze_time
 from model_mommy import mommy
 
+from enhydris.models import Station, Timeseries, TimeZone
 from enhydris_synoptic.models import (
     SynopticGroup,
     SynopticGroupStation,

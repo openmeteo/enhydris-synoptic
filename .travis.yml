@@ -45,7 +45,7 @@ script:
  - python manage.py makemigrations --check
  - black --check enhydris_synoptic
  - flake8 --max-line-length=88 enhydris_synoptic
- - ( cd ../enhydris-synoptic && isort --recursive --check-only --diff enhydris_synoptic )
+ - ( cd ../enhydris-synoptic && isort --check-only --diff enhydris_synoptic )
  - coverage run --include="./enhydris_synoptic/*" --omit="*/tests/*","*/tests.py","*/migrations/*" ./manage.py test -v2 enhydris_synoptic
 
 after_success:

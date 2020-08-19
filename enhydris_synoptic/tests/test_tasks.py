@@ -13,10 +13,10 @@ from django.test import TestCase, override_settings
 
 import numpy as np
 from django_selenium_clean import PageElement
-from enhydris.tests.test_views import SeleniumTestCase
 from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 
+from enhydris.tests.test_views import SeleniumTestCase
 from enhydris_synoptic.tasks import create_static_files
 
 from .data import TestData

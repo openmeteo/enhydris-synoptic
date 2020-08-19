@@ -4,9 +4,9 @@ from io import StringIO
 
 from django.contrib.gis.geos import Point
 
-from enhydris.models import Station, Timeseries, TimeZone, Variable
 from model_mommy import mommy
 
+from enhydris.models import Station, Timeseries, TimeZone, Variable
 from enhydris_synoptic.models import (
     SynopticGroup,
     SynopticGroupStation,
