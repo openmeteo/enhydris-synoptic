@@ -11,15 +11,15 @@
     <dl class="dl-horizontal">
       <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date_pretty }}</dd>
       <dt>&nbsp;</dt><dd></dd>
-      {% for synts in object.synoptic_timeseries %}
+      {% for syntsg in object.synoptic_timeseries_groups %}
         <dt>
-          {{ synts.title|default:synts.timeseries.name }}
-          {% if synts.subtitle %}
-            ({{ synts.subtitle }})
+          {{ syntsg.title|default:syntsg.timeseries_group.name }}
+          {% if syntsg.subtitle %}
+            ({{ syntsg.subtitle }})
           {% endif %}
         </dt>
-        {% with precision=synts.timeseries.precision|default:0 %}
-          <dd>{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}</dd>
+        {% with precision=syntsg.timeseries_group.precision|default:0 %}
+          <dd>{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}</dd>
         {% endwith %}
       {% endfor %}
     </dl>

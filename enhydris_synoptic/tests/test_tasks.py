@@ -81,19 +81,19 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
             filename,
             text=textwrap.dedent(
                 """\
-            <div class="panel panel-default">
-              <div class="panel-heading">Latest measurements</div>
-              <div class="panel-body">
-                <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
-                  <dt>&nbsp;</dt><dd></dd>
-                  <dt>Rain</dt><dd>0.2 mm</dd>
-                  <dt>Air temperature</dt><dd>38.5 °C</dd>
-                  <dt>Wind speed</dt><dd>nan m/s</dd>
-                </dl>
-              </div>
-            </div>
-            """
+                <div class="panel panel-default">
+                <div class="panel-heading">Latest measurements</div>
+                <div class="panel-body">
+                    <dl class="dl-horizontal">
+                      <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
+                      <dt>&nbsp;</dt><dd></dd>
+                      <dt>Rain</dt><dd>0.2 mm</dd>
+                      <dt>Air temperature</dt><dd>38.5 °C</dd>
+                      <dt>Wind speed</dt><dd>nan m/s</dd>
+                    </dl>
+                </div>
+                </div>
+                """
             ),
         )
 
@@ -105,7 +105,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
 
         # Check that it is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts2_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg2_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -132,7 +132,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
 
         # Check that it is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_3.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_3.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -314,13 +314,13 @@ class EmptyTimeseriesTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
-        self.data.ts_komboti_temperature.set_data(StringIO(""))
+        self.data.tsg_komboti_temperature.default_timeseries.set_data(StringIO(""))
         create_static_files()
 
     def test_chart(self):
         # Check that the chart is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -335,13 +335,15 @@ class TimeseriesWithOneRecordTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
-        self.data.ts_komboti_temperature.set_data(StringIO("2015-10-22 15:10,0,\n"))
+        self.data.tsg_komboti_temperature.default_timeseries.set_data(
+            StringIO("2015-10-22 15:10,0,\n")
+        )
         create_static_files()
 
     def test_chart(self):
         # Check that the chart is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)

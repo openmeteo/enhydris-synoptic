@@ -80,17 +80,17 @@
         last_common_date_pretty_without_timezone: "{{ object.last_common_date_pretty_without_timezone }}",
         freshness: "{{ object.freshness }}",
         last_values: {
-          {% for synts in object.synoptic_timeseries %}
-            "{{ synts.full_name }}":
-            {% with precision=synts.timeseries.precision|default:0 %}
-              "{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}"
+          {% for syntsg in object.synoptic_timeseries_groups %}
+            "{{ syntsg.full_name }}":
+            {% with precision=syntsg.timeseries_group.precision|default:0 %}
+              "{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}"
             {% endwith %}
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         },
         last_values_status: {
-          {% for synts in object.synoptic_timeseries %}
-            "{{ synts.full_name }}": "{{ synts.value_status }}"
+          {% for syntsg in object.synoptic_timeseries_groups %}
+            "{{ syntsg.full_name }}": "{{ syntsg.value_status }}"
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         },

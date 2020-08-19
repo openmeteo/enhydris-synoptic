@@ -3,7 +3,24 @@ import datetime as dt
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
-from enhydris.models import Station, Timeseries, TimeZone
+from enhydris.models import Station, TimeseriesGroup, TimeZone
+
+# NOTE: Confusingly, there are three distinct uses of "group" here. They refer to
+# different things:
+# - A "timeseries group" refers to an Enhydris time series group. See Enhydris's
+#   database documentation for details on what this is.
+# - A "synoptic group" means a report prepared by this app. It has a slug (e.g. "ntua")
+#   so that visitors can view the report at a URL (e.g.
+#   "https://openmeteo.org/synoptic/ntua/"). It was named thus because it is a report
+#   about a group of stations, so "synoptic group" actually means "a group of stations
+#   for which we create a synoptic report".
+# - In a given synoptic group, two timeseries groups may be "groupped" together; that
+#   is, shown in the same chart. This is achieved with
+#   SynopticTimeseriesGroup.group_with.
+#
+# SynopticTimeseriesGroup means "a timeseries group used in a synoptic station".
+#
+# Yes, this sucks. Ideas on improving it are welcome.
 
 
 class SynopticGroup(models.Model):
@@ -27,7 +44,9 @@ class SynopticGroupStation(models.Model):
     synoptic_group = models.ForeignKey(SynopticGroup, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
-    timeseries = models.ManyToManyField(Timeseries, through="SynopticTimeseries")
+    timeseries_groups = models.ManyToManyField(
+        TimeseriesGroup, through="SynopticTimeseriesGroup"
+    )
 
     class Meta:
         unique_together = (("synoptic_group", "order"),)
@@ -36,46 +55,44 @@ class SynopticGroupStation(models.Model):
     def __str__(self):
         return str(self.station)
 
-    def check_timeseries_integrity(self, *args, **kwargs):
+    def check_timeseries_groups_integrity(self, *args, **kwargs):
         """
-        This method checks whether the timeseries.through.order field starts
-        with 1 and is contiguous, and that groupped time series are in order.
-        I wrote it thinking I could use it somewhere, but I don't think it's
-        possible (see http://stackoverflow.com/questions/33500336/). However,
-        since I wrote it, I keep it, although I'm not using it anywhere. Mind
-        you, it's unit-tested.
+        This method checks whether the timeseries_groups.through.order field starts with
+        1 and is contiguous, and that groupped time series are in order.  I wrote it
+        thinking I could use it somewhere, but I don't think it's possible (see
+        http://stackoverflow.com/questions/33500336/). However, since I wrote it, I keep
+        it, although I'm not using it anywhere. Mind you, it's unit-tested.
         """
         # Check that time series are in order
         expected_order = 0
-        for syn_ts in self.synoptictimeseries_set.order_by("order"):
+        for syn_ts in self.synoptictimeseriesgroup_set.order_by("order"):
             expected_order += 1
             if syn_ts.order != expected_order:
                 raise IntegrityError(
-                    _(
-                        "The order of the time series must start from 1 and be "
-                        "continuous."
-                    )
+                    _("The order of the data must start from 1 and be continuous.")
                 )
 
         # Check that grouped time series are in order
-        current_group_leader = None
-        previous_synoptictimeseries = None
-        for syn_ts in self.synoptictimeseries_set.order_by("order"):
-            if not syn_ts.group_with:
-                current_group_leader = None
+        current_synopticgroup_leader = None
+        previous_synoptictimeseriesgroup = None
+        for syn_tsg in self.synoptictimeseriesgroup_set.order_by("order"):
+            if not syn_tsg.group_with:
+                current_synopticgroup_leader = None
                 continue
-            current_group_leader = current_group_leader or previous_synoptictimeseries
-            if syn_ts.group_with.id != current_group_leader.id:
+            current_synopticgroup_leader = (
+                current_synopticgroup_leader or previous_synoptictimeseriesgroup
+            )
+            if syn_tsg.group_with.id != current_synopticgroup_leader.id:
                 raise IntegrityError(
                     _("Groupped time series must be ordered together.")
                 )
-            previous_synoptictimeseries = syn_ts
+            previous_synoptictimeseriesgroup = syn_tsg
 
         super(SynopticGroupStation, self).save(*args, **kwargs)
 
     @property
-    def synoptic_timeseries(self):
-        """List of synoptic timeseries objects with data.
+    def synoptic_timeseries_groups(self):
+        """List of synoptic timeseries group objects with data.
 
         The objects in the list have attribute "data", which is a pandas dataframe with
         the last 24 hours preceding the last common date, "value", which is the
@@ -83,41 +100,41 @@ class SynopticGroupStation(models.Model):
         "high" or "low", depending on where "value" is compared to low_limit and
         high_limit.
         """
-        if not hasattr(self, "_synoptic_timeseries"):
-            self._determine_timeseries()
-        return self._synoptic_timeseries
+        if not hasattr(self, "_synoptic_timeseries_groups"):
+            self._determine_timeseries_groups()
+        return self._synoptic_timeseries_groups
 
-    def _determine_timeseries(self):
+    def _determine_timeseries_groups(self):
         if self.last_common_date is None:
-            self._synoptic_timeseries = []
+            self._synoptic_timeseries_groups = []
             return
         start_date = self.last_common_date - dt.timedelta(minutes=1439)
-        self._synoptic_timeseries = list(self.synoptictimeseries_set.all())
+        self._synoptic_timeseries_groups = list(self.synoptictimeseriesgroup_set.all())
         self.error = False  # This may be changed by _set_ts_value()
-        for asynts in self._synoptic_timeseries:
-            asynts.data = asynts.timeseries.get_data(
+        for asyntsg in self._synoptic_timeseries_groups:
+            asyntsg.data = asyntsg.timeseries_group.default_timeseries.get_data(
                 start_date=start_date, end_date=self.last_common_date
             ).data
-            self._set_ts_value(asynts)
-            self._set_ts_value_status(asynts)
+            self._set_tsg_value(asyntsg)
+            self._set_tsg_value_status(asyntsg)
 
-    def _set_ts_value(self, asynts):
+    def _set_tsg_value(self, asyntsg):
         try:
-            asynts.value = asynts.data.loc[self.last_common_date.replace(tzinfo=None)][
-                "value"
-            ]
+            asyntsg.value = asyntsg.data.loc[
+                self.last_common_date.replace(tzinfo=None)
+            ]["value"]
         except KeyError:
             self.error = True
 
-    def _set_ts_value_status(self, asynts):
-        if not hasattr(asynts, "value") or asynts.value is None:
-            asynts.value_status = "error"
-        elif asynts.low_limit is not None and asynts.value < asynts.low_limit:
-            asynts.value_status = "low"
-        elif asynts.high_limit is not None and asynts.value > asynts.high_limit:
-            asynts.value_status = "high"
+    def _set_tsg_value_status(self, asyntsg):
+        if not hasattr(asyntsg, "value") or asyntsg.value is None:
+            asyntsg.value_status = "error"
+        elif asyntsg.low_limit is not None and asyntsg.value < asyntsg.low_limit:
+            asyntsg.value_status = "low"
+        elif asyntsg.high_limit is not None and asyntsg.value > asyntsg.high_limit:
+            asyntsg.value_status = "high"
         else:
-            asynts.value_status = "ok"
+            asyntsg.value_status = "ok"
 
     @property
     def last_common_date(self):
@@ -130,8 +147,8 @@ class SynopticGroupStation(models.Model):
         # we get the minimum of the last dates of the timeseries, which will usually be
         # the last common date. station is an enhydris_synoptic.models.Station object.
         last_common_date = None
-        for asynts in self.synoptictimeseries_set.all():
-            end_date = asynts.timeseries.end_date
+        for asyntsg in self.synoptictimeseriesgroup_set.all():
+            end_date = asyntsg.timeseries_group.default_timeseries.end_date
             if end_date and ((not last_common_date) or (end_date < last_common_date)):
                 last_common_date = end_date
         self._last_common_date = last_common_date
@@ -157,17 +174,17 @@ class SynopticGroupStation(models.Model):
         return "old" if is_old else "recent"
 
 
-class SynopticTimeseriesManager(models.Manager):
+class SynopticTimeseriesGroupManager(models.Manager):
     def primary(self):
-        """Return only time series that don't have group_with."""
+        """Return only time series groups that don't have group_with."""
         return self.filter(group_with__isnull=True)
 
 
-class SynopticTimeseries(models.Model):
+class SynopticTimeseriesGroup(models.Model):
     synoptic_group_station = models.ForeignKey(
         SynopticGroupStation, on_delete=models.CASCADE
     )
-    timeseries = models.ForeignKey(Timeseries, on_delete=models.CASCADE)
+    timeseries_group = models.ForeignKey(TimeseriesGroup, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
     title = models.CharField(
         max_length=50,
@@ -229,24 +246,23 @@ class SynopticTimeseries(models.Model):
         ),
     )
 
-    objects = SynopticTimeseriesManager()
+    objects = SynopticTimeseriesGroupManager()
 
     class Meta:
         unique_together = (
-            ("synoptic_group_station", "timeseries"),
+            ("synoptic_group_station", "timeseries_group"),
             ("synoptic_group_station", "order"),
         )
         ordering = ["synoptic_group_station", "order"]
-        verbose_name_plural = "Synoptic timeseries"
 
     def __str__(self):
         return str(self.synoptic_group_station) + " - " + self.full_name
 
     def get_title(self):
-        return self.title or self.timeseries.name
+        return self.title or self.timeseries_group.get_name()
 
     def get_subtitle(self):
-        return self.subtitle or self.timeseries.name
+        return self.subtitle or self.timeseries_group.get_name()
 
     @property
     def full_name(self):
