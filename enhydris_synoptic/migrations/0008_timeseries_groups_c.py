@@ -26,7 +26,5 @@ class Migration(migrations.Migration):
                 ("synoptic_group_station", "timeseries_group"),
             },
         ),
-        migrations.RemoveField(
-            model_name="synoptictimeseriesgroup", name="timeseries",
-        ),
+        migrations.RemoveField(model_name="synoptictimeseriesgroup", name="timeseries"),
     ]

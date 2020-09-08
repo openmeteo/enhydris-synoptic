@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RenameModel(
-            old_name="SynopticTimeseries", new_name="SynopticTimeseriesGroup",
+            old_name="SynopticTimeseries", new_name="SynopticTimeseriesGroup"
         ),
         migrations.AlterModelOptions(
             name="synoptictimeseriesgroup",
