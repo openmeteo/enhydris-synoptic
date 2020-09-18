@@ -26,3 +26,43 @@
 .low {
   color: red;
 }
+
+/* MAP */
+
+/* TODO Make page centered and not too wide */
+#synoptic-map-container {
+  position: absolute;
+  top: 62px;
+  bottom: 10px;
+  left: 0;
+
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+#mapid {
+  position: relative;
+
+  width: 100%;
+  height: 100% !important;
+}
+
+#timezone-info {
+  position: absolute;
+  bottom: -10px;
+  left: 120px;
+  z-index: 1000;
+
+  padding-left: 5px;
+  padding-right: 5px;
+
+  background-color: white;
+  opacity: 70%;
+}
+
+/* GROUP STATION */
+
+div#content {
+  margin: 0 auto;
+}

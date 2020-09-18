@@ -3,24 +3,25 @@
 
 {% if object.error %}
   {% blocktrans %}
-    <p>Something's wrong with the data of this report. Check if the time series are all the same time step.</p>
+    <div class="alert alert-warning" role="alert">Something's wrong with the data of this report. Check if the time series are all the same time step.</div>
   {% endblocktrans %}
 {% else %}
   {% localtime off %}
-    <dl class="dl-horizontal">
-      <dt>{% trans "Last update" %}</dt>
-      <dd>{{ object.last_common_date_pretty }}</dd>
-      <dt>&nbsp;</dt>
-      <dd></dd>
+    <dl class="row">
+      <dt class="col-sm-2 text-right">{% trans "Last update" %}</dt>
+      <dd class="col-sm-10">{{ object.last_common_date_pretty }}</dd>
+      <dt class="col-sm-2 text-right">&nbsp;</dt>
+      <dd class="col-sm-10"></dd>
       {% for syntsg in object.synoptic_timeseries_groups %}
-        <dt>
+        <dt class="col-sm-2 text-right">
           {{ syntsg.title|default:syntsg.timeseries_group.name }}
           {% if syntsg.subtitle %}
             ({{ syntsg.subtitle }})
           {% endif %}
         </dt>
         {% with precision=syntsg.timeseries_group.precision|default:0 %}
-          <dd>{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}</dd>
+          <dd class="col-sm-10">{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol
+            }}</dd>
         {% endwith %}
       {% endfor %}
     </dl>
