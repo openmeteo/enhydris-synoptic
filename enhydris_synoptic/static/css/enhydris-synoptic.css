@@ -29,7 +29,6 @@
 
 /* MAP */
 
-/* TODO Make page centered and not too wide */
 #synoptic-map-container {
   position: absolute;
   top: 62px;
@@ -65,4 +64,5 @@
 
 div#content {
   margin: 0 auto;
+  max-width: 45em;
 }

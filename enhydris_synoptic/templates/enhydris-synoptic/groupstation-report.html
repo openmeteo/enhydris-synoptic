@@ -8,20 +8,19 @@
 {% else %}
   {% localtime off %}
     <dl class="row">
-      <dt class="col-sm-2 text-right">{% trans "Last update" %}</dt>
-      <dd class="col-sm-10">{{ object.last_common_date_pretty }}</dd>
-      <dt class="col-sm-2 text-right">&nbsp;</dt>
-      <dd class="col-sm-10"></dd>
+      <dt class="col-sm-4 text-sm-right">{% trans "Last update" %}</dt>
+      <dd class="col-sm-8">{{ object.last_common_date_pretty }}</dd>
+      <dt class="col-sm-4 text-sm-right">&nbsp;</dt>
+      <dd class="col-sm-8"></dd>
       {% for syntsg in object.synoptic_timeseries_groups %}
-        <dt class="col-sm-2 text-right">
+        <dt class="col-sm-4 text-sm-right">
           {{ syntsg.title|default:syntsg.timeseries_group.name }}
           {% if syntsg.subtitle %}
             ({{ syntsg.subtitle }})
           {% endif %}
         </dt>
         {% with precision=syntsg.timeseries_group.precision|default:0 %}
-          <dd class="col-sm-10">{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol
-            }}</dd>
+          <dd class="col-sm-8">{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}</dd>
         {% endwith %}
       {% endfor %}
     </dl>
