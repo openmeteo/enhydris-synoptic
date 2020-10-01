@@ -12,8 +12,8 @@
 
 {% block extracss %}
   {{ block.super }}
-  <link type="text/css" rel="stylesheet" href="{% static "css/enhydris-synoptic.css" %}">
-  <link type="text/css" rel="stylesheet" href="{% static "css/leaflet.groupedlayercontrol.min.css" %}">
+  <link type="text/css" rel="stylesheet" href="{% static 'css/enhydris-synoptic.css' %}">
+  <link type="text/css" rel="stylesheet" href="{% static 'css/leaflet.groupedlayercontrol.min.css' %}">
 {% endblock %}
 
 
@@ -53,8 +53,12 @@
 
 {% block content %}
   <div id="synoptic-map-container">
-    <div id="mapid" style="width: 100%; height: 300px; position:relative"></div>
-    <p id="timezone-info">{% blocktrans with timezone=object.time_zone.code %}All times are in {{ timezone }}{% endblocktrans %}</p>
+    <div id="mapid"></div>
+    <p id="timezone-info">
+      {% blocktrans with timezone=object.time_zone.code %}
+        All times are in {{ timezone }}
+      {% endblocktrans %}
+    </p>
   </div>
 {% endblock %}
 
@@ -62,8 +66,8 @@
 {% block mainjs %}
   {{ block.super }}
   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js"></script>
-  <script type="text/javascript" src="{% static "js/L.Control.MousePosition.js" %}"></script>
-  <script type="text/javascript" src="{% static "js/leaflet.groupedlayercontrol.min.js" %}"></script>
+  <script type="text/javascript" src="{% static 'js/L.Control.MousePosition.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/leaflet.groupedlayercontrol.min.js' %}"></script>
   <script type="text/javascript">
     enhydris.mapBaseLayers = {{ map_base_layers|safe }};
     enhydris.mapDefaultBaseLayer = "{{ map_default_base_layer|safe }}";
@@ -98,6 +102,6 @@
       });
     {% endfor %}
   </script>
-  <script type="text/javascript" src="{% static "js/enhydris.js" %}"></script>
-  <script type="text/javascript" src="{% static "js/enhydris-synoptic.js" %}"></script>
+  <script type="text/javascript" src="{% static 'js/enhydris.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/enhydris-synoptic.js' %}"></script>
 {% endblock %}

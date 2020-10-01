@@ -3,14 +3,15 @@
 
 {% if object.error %}
   {% blocktrans %}
-    <p>Something's wrong with the data of this report. Check if the
-      time series are all the same time step.</p>
+    <p>Something's wrong with the data of this report. Check if the time series are all the same time step.</p>
   {% endblocktrans %}
 {% else %}
   {% localtime off %}
     <dl class="dl-horizontal">
-      <dt>{% trans "Last update" %}</dt><dd>{{ object.last_common_date_pretty }}</dd>
-      <dt>&nbsp;</dt><dd></dd>
+      <dt>{% trans "Last update" %}</dt>
+      <dd>{{ object.last_common_date_pretty }}</dd>
+      <dt>&nbsp;</dt>
+      <dd></dd>
       {% for syntsg in object.synoptic_timeseries_groups %}
         <dt>
           {{ syntsg.title|default:syntsg.timeseries_group.name }}

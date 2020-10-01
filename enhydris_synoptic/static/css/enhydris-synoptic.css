@@ -1,25 +1,28 @@
+/* UTILS */
+
 .leaflet-div-icon {
-    padding-left: 5px;
-    border: none;
-    opacity: 75%;
+  padding-left: 5px;
+
+  border: none;
+  opacity: 75%;
 }
 
 .date {
-    font-size: x-small;
+  font-size: x-small;
 }
 
 .old {
-    color: red;
+  color: red;
 }
 
 .recent {
-    color: green;
+  color: green;
 }
 
 .high {
-    color: red;
+  color: red;
 }
 
 .low {
-    color: red;
+  color: red;
 }
