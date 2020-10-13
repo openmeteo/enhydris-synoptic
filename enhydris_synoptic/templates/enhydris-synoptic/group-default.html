@@ -2,68 +2,33 @@
 {% load i18n %}
 {% load static %}
 
-
 {% block title %}
   {% blocktrans with name=object.name %}
     {{ name }} meteorological report
   {% endblocktrans %}
 {% endblock %}
 
-
 {% block extracss %}
   {{ block.super }}
-  <link type="text/css" rel="stylesheet" href="{% static "css/enhydris-synoptic.css" %}">
-  <link type="text/css" rel="stylesheet" href="{% static "css/leaflet.groupedlayercontrol.min.css" %}">
+  <link type="text/css" rel="stylesheet" href="{% static 'css/leaflet.groupedlayercontrol.min.css' %}">
 {% endblock %}
-
-
-{% block extra_head %}
-  {{ block.super }}
-  <style>
-    {% comment %}Make page centered and not too wide{% endcomment %}
-    #synoptic-map-container {
-        position: absolute;
-        top: 62px;
-        bottom: 10px;
-        left: 0;
-        width: 100%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-
-    #mapid {
-        position: relative;
-        width: 100%;
-        height: 100% !important;
-    }
-
-    #timezone-info {
-        position: absolute;
-        bottom: -10px;
-        z-index: 1000;
-        background-color: white;
-        opacity: 70%;
-        left: 120px;
-        padding-left: 5px;
-        padding-right: 5px;
-    }
-  </style>
-{% endblock %}
-
 
 {% block content %}
   <div id="synoptic-map-container">
-    <div id="mapid" style="width: 100%; height: 300px; position:relative"></div>
-    <p id="timezone-info">{% blocktrans with timezone=object.time_zone.code %}All times are in {{ timezone }}{% endblocktrans %}</p>
+    <div id="mapid"></div>
+    <p id="timezone-info">
+      {% blocktrans with timezone=object.time_zone.code %}
+        All times are in {{ timezone }}
+      {% endblocktrans %}
+    </p>
   </div>
 {% endblock %}
-
 
 {% block mainjs %}
   {{ block.super }}
   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js"></script>
-  <script type="text/javascript" src="{% static "js/L.Control.MousePosition.js" %}"></script>
-  <script type="text/javascript" src="{% static "js/leaflet.groupedlayercontrol.min.js" %}"></script>
+  <script type="text/javascript" src="{% static 'js/L.Control.MousePosition.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/leaflet.groupedlayercontrol.min.js' %}"></script>
   <script type="text/javascript">
     enhydris.mapBaseLayers = {{ map_base_layers|safe }};
     enhydris.mapDefaultBaseLayer = "{{ map_default_base_layer|safe }}";
@@ -80,17 +45,17 @@
         last_common_date_pretty_without_timezone: "{{ object.last_common_date_pretty_without_timezone }}",
         freshness: "{{ object.freshness }}",
         last_values: {
-          {% for synts in object.synoptic_timeseries %}
-            "{{ synts.full_name }}":
-            {% with precision=synts.timeseries.precision|default:0 %}
-              "{{ synts.value|floatformat:precision }} {{ synts.timeseries.unit_of_measurement.symbol }}"
+          {% for syntsg in object.synoptic_timeseries_groups %}
+            "{{ syntsg.full_name }}":
+            {% with precision=syntsg.timeseries_group.precision|default:0 %}
+              "{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}"
             {% endwith %}
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         },
         last_values_status: {
-          {% for synts in object.synoptic_timeseries %}
-            "{{ synts.full_name }}": "{{ synts.value_status }}"
+          {% for syntsg in object.synoptic_timeseries_groups %}
+            "{{ syntsg.full_name }}": "{{ syntsg.value_status }}"
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         },
@@ -98,6 +63,6 @@
       });
     {% endfor %}
   </script>
-  <script type="text/javascript" src="{% static "js/enhydris.js" %}"></script>
-  <script type="text/javascript" src="{% static "js/enhydris-synoptic.js" %}"></script>
+  <script type="text/javascript" src="{% static 'js/enhydris.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/enhydris-synoptic.js' %}"></script>
 {% endblock %}

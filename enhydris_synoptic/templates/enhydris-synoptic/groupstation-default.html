@@ -1,49 +1,38 @@
 {% extends "enhydris-synoptic/base.html" %}
 {% load i18n %}
 
-
-{% block extra_head %}
-  {{ block.super }}
-  <style>
-    div#content {
-        max-width: 45em;
-        margin: 0 auto;
-    }
-  </style>
-{% endblock %}
-
-
 {% block title %}
   {% blocktrans with name=object.station.name %}
     Conditions at {{ name }}
   {% endblocktrans %}
 {% endblock %}
 
-
 {% block content %}
   {% block breadcrumbs %}
-    <ol class="breadcrumb">
-      <li><a href="../../">{% blocktrans with name=object.synoptic_group.name %}{{ name }} current conditions report{% endblocktrans %}</a></li>
-      {% url 'station_detail' object.station.id as station_page %}
-      <li class="active"><a href="{{ station_page }}">{{ object.station.name }}</a></li>
-    </ol>
+    <nav aria-label="breadcrumbs">
+      <ol class="breadcrumb breadcrumbs-synoptic">
+        <li class="breadcrumb-item"><a href="../../">{% blocktrans with name=object.synoptic_group.name %}{{ name }} current conditions report{% endblocktrans %}</a></li>
+        {% url 'station_detail' object.station.id as station_page %}
+        <li class="breadcrumb-item active" aria-current="page"><a href="{{ station_page }}">{{ object.station.name }}</a></li>
+      </ol>
+    </nav>
   {% endblock %}
-  <div id="content">
-    <h1>{% blocktrans with name=object.station.name %}Conditions at {{ name }}{% endblocktrans %}</h1>
-    <div class="panel panel-default">
-      <div class="panel-heading">{% trans "Latest measurements" %}</div>
-      <div class="panel-body">
-        {% include "enhydris-synoptic/groupstation-report.html" %}
+  <div class="container">
+    <div id="content">
+      <h1 class="mb-4">{% blocktrans with name=object.station.name %}Conditions at {{ name }}{% endblocktrans %}</h1>
+      <div class="card mb-3">
+        <div class="card-header">{% trans "Latest measurements" %}</div>
+        <div class="card-body">
+          {% include "enhydris-synoptic/groupstation-report.html" %}
+        </div>
       </div>
-    </div>
-    <div class="charts">
-      <center>
-        {% for synoptic_timeseries in object.synoptictimeseries_set.primary %}
-          <h2>{{ synoptic_timeseries.get_title }}</h2>
-          <img src="../../../chart/{{ synoptic_timeseries.id }}.png">
+      <div class="text-center charts">
+        {% for synoptic_timeseries_group in object.synoptictimeseriesgroup_set.primary %}
+          <h2>{{ synoptic_timeseries_group.get_title }}</h2>
+          <img src="../../../chart/{{ synoptic_timeseries_group.id }}.png" alt="Chart">
           <hr>
         {% endfor %}
-      </center>
+      </div>
     </div>
   </div>
 {% endblock %}

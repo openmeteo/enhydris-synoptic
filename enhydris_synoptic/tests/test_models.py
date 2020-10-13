@@ -5,15 +5,14 @@ from io import StringIO
 from django.db import IntegrityError
 from django.test import TestCase
 
-from enhydris.models import Station, Timeseries, TimeZone
-from enhydris.tests import RandomEnhydrisTimeseriesDataDir
 from freezegun import freeze_time
 from model_mommy import mommy
 
+from enhydris.models import Station, Timeseries, TimeseriesGroup, TimeZone
 from enhydris_synoptic.models import (
     SynopticGroup,
     SynopticGroupStation,
-    SynopticTimeseries,
+    SynopticTimeseriesGroup,
 )
 
 from .data import TestData
@@ -77,14 +76,14 @@ class SynopticGroupStationTestCase(TestCase):
 class SynopticGroupStationCheckIntegrityTestCase(TestCase):
     def setUp(self):
         self.station_komboti = mommy.make(Station, name="Komboti")
-        self.timeseries_rain = mommy.make(
-            Timeseries, gentity=self.station_komboti, name="Rain"
+        self.timeseries_group_rain = mommy.make(
+            TimeseriesGroup, gentity=self.station_komboti, name="Rain"
         )
-        self.timeseries_temperature1 = mommy.make(
-            Timeseries, gentity=self.station_komboti, name="Temperature"
+        self.timeseries_group_temperature1 = mommy.make(
+            TimeseriesGroup, gentity=self.station_komboti, name="Temperature"
         )
-        self.timeseries_temperature2 = mommy.make(
-            Timeseries, gentity=self.station_komboti, name="Temperature"
+        self.timeseries_group_temperature2 = mommy.make(
+            TimeseriesGroup, gentity=self.station_komboti, name="Temperature"
         )
 
         # Create SynopticGroup
@@ -100,45 +99,46 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
         )
 
         # SynopticTimeseries
-        self.sts1_1 = SynopticTimeseries.objects.create(
-            synoptic_group_station=self.sgs1, timeseries=self.timeseries_rain, order=1
-        )
-        self.sts1_2 = SynopticTimeseries.objects.create(
+        self.stsg1_1 = SynopticTimeseriesGroup.objects.create(
             synoptic_group_station=self.sgs1,
-            timeseries=self.timeseries_temperature1,
+            timeseries_group=self.timeseries_group_rain,
+            order=1,
+        )
+        self.stsg1_2 = SynopticTimeseriesGroup.objects.create(
+            synoptic_group_station=self.sgs1,
+            timeseries_group=self.timeseries_group_temperature1,
             order=2,
         )
 
-    def test_check_timeseries_integrity(self):
-        self.sgs1.check_timeseries_integrity()  # No exception thrown
+    def test_check_timeseries_groups_integrity(self):
+        self.sgs1.check_timeseries_groups_integrity()  # No exception thrown
 
     def test_raises_error_if_there_are_gaps_in_the_order(self):
-        self.sts1_2.order = 3
-        self.sts1_2.save()
+        self.stsg1_2.order = 3
+        self.stsg1_2.save()
         with self.assertRaises(IntegrityError):
-            self.sgs1.check_timeseries_integrity()
+            self.sgs1.check_timeseries_groups_integrity()
 
     def test_raises_error_if_numbering_does_not_start_with_1(self):
-        self.sts1_1.order = 3
-        self.sts1_1.save()
+        self.stsg1_1.order = 3
+        self.stsg1_1.save()
         with self.assertRaises(IntegrityError):
-            self.sgs1.check_timeseries_integrity()
+            self.sgs1.check_timeseries_groups_integrity()
 
     def test_raises_error_if_two_timeseries_have_same_order(self):
-        self.sts1_2.order = 1
+        self.stsg1_2.order = 1
         with self.assertRaises(IntegrityError):
-            self.sts1_2.save()
+            self.stsg1_2.save()
 
     def test_third_timeseries_is_added_without_problem(self):
-        self.sts1_3 = SynopticTimeseries.objects.create(
+        self.stsg1_3 = SynopticTimeseriesGroup.objects.create(
             synoptic_group_station=self.sgs1,
-            timeseries=self.timeseries_temperature2,
+            timeseries_group=self.timeseries_group_temperature2,
             order=3,
         )
-        self.sgs1.check_timeseries_integrity()  # No exception thrown
+        self.sgs1.check_timeseries_groups_integrity()  # No exception thrown
 
 
-@RandomEnhydrisTimeseriesDataDir()
 class LastCommonDateTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
@@ -163,30 +163,33 @@ class LastCommonDateTestCase(TestCase):
         )
 
 
-@RandomEnhydrisTimeseriesDataDir()
-class SynopticGroupStationSynopticTimeseriesTestCase(TestCase):
+class SynopticGroupStationSynopticTimeseriesGroupTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
 
     def test_value(self):
-        self.assertAlmostEqual(self.data.sgs_agios.synoptic_timeseries[0].value, 0.2)
+        self.assertAlmostEqual(
+            self.data.sgs_agios.synoptic_timeseries_groups[0].value, 0.2
+        )
 
     def test_data(self):
-        self.assertEqual(len(self.data.sgs_agios.synoptic_timeseries[0].data), 2)
+        self.assertEqual(len(self.data.sgs_agios.synoptic_timeseries_groups[0].data), 2)
 
 
-@RandomEnhydrisTimeseriesDataDir()
 class FreshnessTestCase(TestCase):
     def setUp(self):
-        self.st = mommy.make(
-            SynopticTimeseries,
+        self.stg = mommy.make(
+            SynopticTimeseriesGroup,
             synoptic_group_station__synoptic_group__fresh_time_limit=dt.timedelta(
                 minutes=60
             ),
-            timeseries__time_zone__code="EET",
-            timeseries__time_zone__utc_offset=120,
+            timeseries_group__time_zone__code="EET",
+            timeseries_group__time_zone__utc_offset=120,
         )
-        self.st.timeseries.set_data(
+        mommy.make(
+            Timeseries, timeseries_group=self.stg.timeseries_group, type=Timeseries.RAW
+        )
+        self.stg.timeseries_group.default_timeseries.set_data(
             StringIO(
                 textwrap.dedent(
                     """\
@@ -200,62 +203,65 @@ class FreshnessTestCase(TestCase):
 
     @freeze_time("2015-10-22 14:19:59")
     def test_data_is_recent(self):
-        self.assertEqual(self.st.synoptic_group_station.freshness, "recent")
+        self.assertEqual(self.stg.synoptic_group_station.freshness, "recent")
 
     @freeze_time("2015-10-22 14:20:01")
     def test_data_is_old(self):
-        self.assertEqual(self.st.synoptic_group_station.freshness, "old")
+        self.assertEqual(self.stg.synoptic_group_station.freshness, "old")
 
 
-class SynopticTimeseriesTestCase(TestCase):
+class SynopticTimeseriesGroupTestCase(TestCase):
     def test_create(self):
         sgs = mommy.make(SynopticGroupStation)
-        timeseries = mommy.make(Timeseries)
-        st = SynopticTimeseries(
-            synoptic_group_station=sgs, timeseries=timeseries, order=1, title="hello"
+        timeseries_group = mommy.make(TimeseriesGroup)
+        stg = SynopticTimeseriesGroup(
+            synoptic_group_station=sgs,
+            timeseries_group=timeseries_group,
+            order=1,
+            title="hello",
         )
-        st.save()
-        self.assertEqual(SynopticTimeseries.objects.first().title, "hello")
+        stg.save()
+        self.assertEqual(SynopticTimeseriesGroup.objects.first().title, "hello")
 
     def test_update(self):
-        mommy.make(SynopticTimeseries)
-        st = SynopticTimeseries.objects.first()
-        st.title = "hello"
-        st.save()
-        self.assertEqual(SynopticTimeseries.objects.first().title, "hello")
+        mommy.make(SynopticTimeseriesGroup)
+        stg = SynopticTimeseriesGroup.objects.first()
+        stg.title = "hello"
+        stg.save()
+        self.assertEqual(SynopticTimeseriesGroup.objects.first().title, "hello")
 
     def test_delete(self):
-        mommy.make(SynopticTimeseries)
-        st = SynopticTimeseries.objects.first()
-        st.delete()
-        self.assertFalse(SynopticTimeseries.objects.exists())
+        mommy.make(SynopticTimeseriesGroup)
+        stg = SynopticTimeseriesGroup.objects.first()
+        stg.delete()
+        self.assertFalse(SynopticTimeseriesGroup.objects.exists())
 
     def test_str_when_subtitle_is_empty(self):
-        st = mommy.make(
-            SynopticTimeseries,
+        stg = mommy.make(
+            SynopticTimeseriesGroup,
             synoptic_group_station__station__name="mystation",
-            title="mysynoptictimeseries",
+            title="mysynoptictimeseriesgroup",
             subtitle="",
-            timeseries__name="",
+            timeseries_group__name="",
         )
-        self.assertEqual(str(st), "mystation - mysynoptictimeseries")
+        self.assertEqual(str(stg), "mystation - mysynoptictimeseriesgroup")
 
     def test_str_when_subtitle_is_specified(self):
-        st = mommy.make(
-            SynopticTimeseries,
+        stg = mommy.make(
+            SynopticTimeseriesGroup,
             synoptic_group_station__station__name="mystation",
-            title="mysynoptictimeseries",
+            title="mysynoptictimeseriesgroup",
             subtitle="mysubtitle",
-            timeseries__name="mytimeseries",
+            timeseries__name="mytimeseriesgroup",
         )
-        self.assertEqual(str(st), "mystation - mysynoptictimeseries (mysubtitle)")
+        self.assertEqual(str(stg), "mystation - mysynoptictimeseriesgroup (mysubtitle)")
 
     def test_str_when_title_is_unspecified(self):
-        st = mommy.make(
-            SynopticTimeseries,
+        stg = mommy.make(
+            SynopticTimeseriesGroup,
             synoptic_group_station__station__name="mystation",
             title="",
             subtitle="mysubtitle",
-            timeseries__name="mytimeseries",
+            timeseries_group__name="mytimeseriesgroup",
         )
-        self.assertEqual(str(st), "mystation - mytimeseries (mysubtitle)")
+        self.assertEqual(str(stg), "mystation - mytimeseriesgroup (mysubtitle)")

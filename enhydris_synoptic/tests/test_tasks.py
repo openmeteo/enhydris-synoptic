@@ -3,7 +3,6 @@ import locale
 import os
 import shutil
 import tempfile
-import textwrap
 from io import StringIO
 from unittest import skipUnless
 
@@ -12,11 +11,12 @@ from django.http import HttpResponse
 from django.test import TestCase, override_settings
 
 import numpy as np
-from django_selenium_clean import PageElement, SeleniumTestCase
-from enhydris.tests import RandomEnhydrisTimeseriesDataDir
+from bs4 import BeautifulSoup
+from django_selenium_clean import PageElement
 from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 
+from enhydris.tests.test_views import SeleniumTestCase
 from enhydris_synoptic.tasks import create_static_files
 
 from .data import TestData
@@ -59,44 +59,19 @@ class AssertHtmlContainsMixin:
         self.assertContains(response, text, html=True)
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
-class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
-    def setUp(self):
-        self.data = TestData()
+class ChartTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.data = TestData()
         settings.TEST_MATPLOTLIB = True
         create_static_files()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         settings.TEST_MATPLOTLIB = False
-
-    def test_synoptic_station(self):
-        filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT,
-            self.data.sg1.slug,
-            "station",
-            str(self.data.sgs_agios.id),
-            "index.html",
-        )
-        self.assertHtmlContains(
-            filename,
-            text=textwrap.dedent(
-                """\
-            <div class="panel panel-default">
-              <div class="panel-heading">Latest measurements</div>
-              <div class="panel-body">
-                <dl class="dl-horizontal">
-                  <dt>Last update</dt><dd>23 Oct 2015 15:20 EET (+0200)</dd>
-                  <dt>&nbsp;</dt><dd></dd>
-                  <dt>Rain</dt><dd>0.2 mm</dd>
-                  <dt>Air temperature</dt><dd>38.5 °C</dd>
-                  <dt>Wind speed</dt><dd>nan m/s</dd>
-                </dl>
-              </div>
-            </div>
-            """
-            ),
-        )
+        super().tearDownClass()
 
     def test_chart(self):
         # We will not compare a bitmap because it is unreliable; instead, we
@@ -106,7 +81,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
 
         # Check that it is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts2_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg2_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -133,7 +108,7 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
 
         # Check that it is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_3.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_3.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -164,7 +139,42 @@ class SynopticTestCase(TestCase, AssertHtmlContainsMixin):
         np.testing.assert_allclose(data_array[1], desired_result[1])
 
 
-@RandomEnhydrisTimeseriesDataDir()
+@RandomSynopticRoot()
+class StationReportTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.data = TestData()
+        create_static_files()
+        filename = os.path.join(
+            settings.ENHYDRIS_SYNOPTIC_ROOT,
+            cls.data.sg1.slug,
+            "station",
+            str(cls.data.sgs_agios.id),
+            "index.html",
+        )
+        with open(filename) as f:
+            cls.soup = BeautifulSoup(f, "html.parser")
+        cls.labels = cls.soup.find("dl").find_all("dt")
+        cls.values = cls.soup.find("dl").find_all("dd")
+
+    def _check(self, i, expected_label, expected_value):
+        self.assertEqual(self.labels[i].contents[0].strip(), expected_label)
+        self.assertEqual(self.values[i].contents[0].strip(), expected_value)
+
+    def test_date(self):
+        self._check(0, "Last update", "23 Oct 2015 15:20 EET (+0200)")
+
+    def test_rain(self):
+        self._check(2, "Rain", "0.2 mm")
+
+    def test_temperature(self):
+        self._check(3, "Air temperature", "38.5 °C")
+
+    def test_wind(self):
+        self._check(4, "Wind speed", "m/s")
+
+
 @RandomSynopticRoot()
 class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
     def setUp(self):
@@ -188,7 +198,6 @@ class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
 
 
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
-@RandomEnhydrisTimeseriesDataDir()
 class MapTestCase(SeleniumTestCase):
 
     komboti_div_icon = PageElement(
@@ -312,19 +321,18 @@ class MapTestCase(SeleniumTestCase):
         self.assertEqual(value.get_attribute("class"), "value low")
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class EmptyTimeseriesTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
-        self.data.ts_komboti_temperature.set_data(StringIO(""))
+        self.data.tsg_komboti_temperature.default_timeseries.set_data(StringIO(""))
         create_static_files()
 
     def test_chart(self):
         # Check that the chart is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)
@@ -334,19 +342,20 @@ class EmptyTimeseriesTestCase(TestCase):
         self.assertEqual(datastr, "()")
 
 
-@RandomEnhydrisTimeseriesDataDir()
 @RandomSynopticRoot()
 class TimeseriesWithOneRecordTestCase(TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
-        self.data.ts_komboti_temperature.set_data(StringIO("2015-10-22 15:10,0,\n"))
+        self.data.tsg_komboti_temperature.default_timeseries.set_data(
+            StringIO("2015-10-22 15:10,0,\n")
+        )
         create_static_files()
 
     def test_chart(self):
         # Check that the chart is a png of substantial length
         filename = os.path.join(
-            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.sts1_2.id) + ".png"
+            settings.ENHYDRIS_SYNOPTIC_ROOT, "chart", str(self.data.stsg1_2.id) + ".png"
         )
         self.assertTrue(filename.endswith(".png"))
         self.assertGreater(os.stat(filename).st_size, 100)

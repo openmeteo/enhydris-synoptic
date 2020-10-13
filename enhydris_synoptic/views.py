@@ -21,11 +21,11 @@ import matplotlib
 # isort:skip_file
 matplotlib.use("AGG")  # NOQA
 
-import enhydris.context_processors
-import matplotlib.pyplot as plt
-import pandas.plotting
-from enhydris.views_common import ensure_extent_is_large_enough
-from matplotlib.dates import DateFormatter, DayLocator, HourLocator
+import enhydris.context_processors  # NOQA
+import matplotlib.pyplot as plt  # NOQA
+import pandas.plotting  # NOQA
+from enhydris.views_common import ensure_extent_is_large_enough  # NOQA
+from matplotlib.dates import DateFormatter, DayLocator, HourLocator  # NOQA
 
 pandas.plotting.register_matplotlib_converters()
 
@@ -83,8 +83,8 @@ def _render_station_page(synstation):
 
 
 def _render_station_charts(synstation):
-    for t in synstation.synoptic_timeseries:
-        Chart(t, synstation.synoptic_timeseries).render()
+    for t in synstation.synoptic_timeseries_groups:
+        Chart(t, synstation.synoptic_timeseries_groups).render()
 
 
 def render_synoptic_group(synoptic_group):
@@ -120,13 +120,13 @@ def _render_group_stations(synoptic_group):
 
 
 class Chart:
-    def __init__(self, current_synoptic_timeseries, all_synoptic_timeseries):
-        self.current_synoptic_timeseries = current_synoptic_timeseries
-        self.all_synoptic_timeseries = all_synoptic_timeseries
+    def __init__(self, current_syn_timeseries_group, all_synoptic_timeseries_groups):
+        self.current_synoptic_timeseries_group = current_syn_timeseries_group
+        self.all_synoptic_timeseries_groups = all_synoptic_timeseries_groups
 
     def render(self):
-        self._get_all_groupped_timeseries()
-        self._reorder_groupped_timeseries()
+        self._get_all_groupped_timeseries_groups()
+        self._reorder_groupped_timeseries_groups()
         self._setup_plot()
         self._draw_lines()
         if len(self.xdata):
@@ -137,16 +137,19 @@ class Chart:
         self._create_and_save_plot()
         self._write_data_to_file_for_unit_testing()
 
-    def _get_all_groupped_timeseries(self):
-        self._synoptic_timeseries = [
+    def _get_all_groupped_timeseries_groups(self):
+        self._synoptic_timeseries_groups = [
             x
-            for x in self.all_synoptic_timeseries
-            if (x.id == self.current_synoptic_timeseries.id)
-            or (x.group_with and x.group_with.id == self.current_synoptic_timeseries.id)
+            for x in self.all_synoptic_timeseries_groups
+            if (x.id == self.current_synoptic_timeseries_group.id)
+            or (
+                x.group_with
+                and x.group_with.id == self.current_synoptic_timeseries_group.id
+            )
         ]
 
-    def _reorder_groupped_timeseries(self):
-        self._synoptic_timeseries.sort(
+    def _reorder_groupped_timeseries_groups(self):
+        self._synoptic_timeseries_groups.sort(
             key=lambda x: float(x.data.value.sum()), reverse=True
         )
 
@@ -159,7 +162,7 @@ class Chart:
         self.ax = self.fig.add_subplot(1, 1, 1)
 
     def _draw_lines(self):
-        for i, s in enumerate(self._synoptic_timeseries):
+        for i, s in enumerate(self._synoptic_timeseries_groups):
             if len(s.data) <= 1:
                 self._set_chart_empty()
             else:
@@ -185,13 +188,13 @@ class Chart:
     def _change_plot_limits(self):
         self.ax.set_xlim(self.xdata[0], self.xdata[-1])
         self.xmin, self.xmax, self.ymin, self.ymax = self.ax.axis()
-        if self.current_synoptic_timeseries.default_chart_min:
+        if self.current_synoptic_timeseries_group.default_chart_min:
             self.ymin = min(
-                self.current_synoptic_timeseries.default_chart_min, self.ymin
+                self.current_synoptic_timeseries_group.default_chart_min, self.ymin
             )
-        if self.current_synoptic_timeseries.default_chart_max:
+        if self.current_synoptic_timeseries_group.default_chart_max:
             self.ymax = max(
-                self.current_synoptic_timeseries.default_chart_max, self.ymax
+                self.current_synoptic_timeseries_group.default_chart_max, self.ymax
             )
         self.ax.set_ylim([self.ymin, self.ymax])
 
@@ -208,7 +211,7 @@ class Chart:
 
     def _set_gridlines_and_legend(self):
         self.ax.grid(b=True, which="both", color="b", linestyle=":")
-        if len(self._synoptic_timeseries) > 1:
+        if len(self._synoptic_timeseries_groups) > 1:
             self.ax.legend()
 
     def _create_and_save_plot(self):
@@ -216,7 +219,7 @@ class Chart:
         self.fig.savefig(f)
         plt.close(self.fig)  # Release some memory
         filename = os.path.join(
-            "chart", str(self.current_synoptic_timeseries.id) + ".png"
+            "chart", str(self.current_synoptic_timeseries_group.id) + ".png"
         )
         File(filename).write(f.getvalue())
         f.close()
@@ -224,7 +227,7 @@ class Chart:
     def _write_data_to_file_for_unit_testing(self):
         if hasattr(settings, "TEST_MATPLOTLIB") and settings.TEST_MATPLOTLIB:
             filename = os.path.join(
-                "chart", str(self.current_synoptic_timeseries.id) + ".dat"
+                "chart", str(self.current_synoptic_timeseries_group.id) + ".dat"
             )
             data = [
                 repr(line.get_xydata()).replace("\n", " ") for line in self.ax.lines
