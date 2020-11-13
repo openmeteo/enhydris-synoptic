@@ -20,7 +20,7 @@ derived are marked top secret.
 Enhydris-synoptic is free software, available under the GNU Affero
 General Public License.
 
-**Installing and configuring**
+**Installing**
 
 - Install Enhydris 3 or later
 
@@ -52,3 +52,26 @@ General Public License.
 After celery executes, the report will be available at
 ``ENHYDRIS_SYNOPTIC_URL + slug + '/'``, where ``slug`` is the URL identifier
 given to the synoptic view.
+
+**Configuration reference**
+
+- ``ENHYDRIS_SYNOPTIC_ROOT``: The filesystem path where the generated
+  files will be stored (see above).
+
+- ``ENHYDRIS_SYNOPTIC_URL``: The URL where the generated
+  files will be served (see above).
+
+- ``ENHYDRIS_SYNOPTIC_STATION_LINK_TARGET``: In the rectangles shown on
+  the map, the station name is a link. This is the link target. The
+  default is ``station/{station.id}/`` (the code will use ``.format()``
+  to replace ``{station.id}`` with the station id).  This default link
+  target leads to a page created by enhydris-synoptic that has a short
+  report about the station, and charts for the last 24 hours. However,
+  in some installations this is undesirable, and it is preferred for the
+  link to lead to the Enhydris station page—in that case, set
+  ``ENHYDRIS_SYNOPTIC_STATION_LINK_TARGET`` to
+  ``/stations/{station.id}/`` (if the synoptic domain name is different
+  from the main Enhydris domain name, you need to specify the full URL).
+  (It would be better to use ``django.urls.reverse()`` here instead of a
+  hardwired URL, but it isn't easy to find a general enough solution for
+  all that.)

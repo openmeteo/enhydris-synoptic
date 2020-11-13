@@ -13,7 +13,7 @@ var _setupMarkers = function (data_layers) {
         Object.keys(station.last_values).forEach(function(key) {
             // Rectangle with info
             html = (
-                "<strong><a href='station/" + station.id + "/'>" + station.name + "</a></strong><br>" +
+                "<strong><a href='" + station.target_url + "'>" + station.name + "</a></strong><br>" +
                 "<span class='date " + station.freshness + "'>" + station.last_common_date_pretty_without_timezone + "</span><br>" +
                 "<span class='value " + station.last_values_status[key] + "'>" + station.last_values[key] + "</span>"
             )

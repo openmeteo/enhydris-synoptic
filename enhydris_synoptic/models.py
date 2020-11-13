@@ -1,5 +1,6 @@
 import datetime as dt
 
+from django.conf import settings
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
@@ -172,6 +173,15 @@ class SynopticGroupStation(models.Model):
         oldness = dt.datetime.now(dt.timezone.utc) - self.last_common_date
         is_old = oldness > self.synoptic_group.fresh_time_limit
         return "old" if is_old else "recent"
+
+    @property
+    def target_url(self):
+        target = getattr(
+            settings,
+            "ENHYDRIS_SYNOPTIC_STATION_LINK_TARGET",
+            "station/{station.id}/",
+        )
+        return target.format(station=self.station)
 
 
 class SynopticTimeseriesGroupManager(models.Manager):

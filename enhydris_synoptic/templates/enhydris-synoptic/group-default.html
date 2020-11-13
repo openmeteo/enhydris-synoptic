@@ -40,6 +40,7 @@
       enhydris.mapStations.push({
         id: {{ object.id }},
         name: "{{ object.station.name | truncatechars:13 }}",
+        target_url: "{{ object.target_url }}",
         latitude: {{ object.station.geom.y }},
         longitude: {{ object.station.geom.x }},
         last_common_date_pretty_without_timezone: "{{ object.last_common_date_pretty_without_timezone }}",
