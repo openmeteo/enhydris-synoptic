@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from io import StringIO
 from unittest import skipUnless
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -319,6 +320,19 @@ class MapTestCase(SeleniumTestCase):
         self.layer_control_temperature.click()
         value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
         self.assertEqual(value.get_attribute("class"), "value low")
+
+    @override_settings(ENHYDRIS_SYNOPTIC_STATION_LINK_TARGET="/hello{station.id}world")
+    def test_station_link_target(self):
+        create_static_files()
+        self.selenium.get(
+            f"{self.live_server_url}/static/synoptic/{self.data.sg1.slug}/index.html"
+        )
+        self.komboti_div_icon.wait_until_is_displayed()
+        a_element = self.komboti_div_icon.find_element_by_tag_name("a")
+        href = a_element.get_attribute("href")
+        self.assertEqual(
+            urlparse(href).path, f"/hello{self.data.station_komboti.id}world"
+        )
 
 
 @RandomSynopticRoot()
