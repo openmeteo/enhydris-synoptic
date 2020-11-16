@@ -5,6 +5,7 @@ uses celery to render its output to static files. So this file contains function
 to do such offline rendering. It doesn't know about requests and responses, and it
 doesn't know about HTTP. But logically it's the "views" part of a Django app.
 """
+import math
 import os
 from io import BytesIO
 
@@ -68,8 +69,14 @@ class File:
 
 
 def render_synoptic_station(synstation):
+    _check_for_null_values(synstation)
     _render_station_page(synstation)
     _render_station_charts(synstation)
+
+
+def _check_for_null_values(synstation):
+    for syntsg in synstation.synoptic_timeseries_groups:
+        syntsg.value_is_null = math.isnan(getattr(syntsg, "value", float("NaN")))
 
 
 def _render_station_page(synstation):

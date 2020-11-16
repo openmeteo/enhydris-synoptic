@@ -20,7 +20,11 @@
           {% endif %}
         </dt>
         {% with precision=syntsg.timeseries_group.precision|default:0 %}
-          <dd class="col-sm-8">{{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}</dd>
+          <dd class="col-sm-8">
+            {% if not syntsg.value_is_null %}
+              {{ syntsg.value|floatformat:precision }} {{ syntsg.timeseries_group.unit_of_measurement.symbol }}
+            {% endif %}
+          </dd>
         {% endwith %}
       {% endfor %}
     </dl>

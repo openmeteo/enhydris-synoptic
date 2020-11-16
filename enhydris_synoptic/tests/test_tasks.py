@@ -173,7 +173,7 @@ class StationReportTestCase(TestCase):
         self._check(3, "Air temperature", "38.5 °C")
 
     def test_wind(self):
-        self._check(4, "Wind speed", "m/s")
+        self._check(4, "Wind speed", "")
 
 
 @RandomSynopticRoot()
