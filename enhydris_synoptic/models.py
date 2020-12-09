@@ -1,6 +1,7 @@
 import datetime as dt
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import IntegrityError, models
 from django.utils.translation import ugettext as _
 
@@ -39,6 +40,49 @@ class SynopticGroup(models.Model):
 
     def __str__(self):
         return self.name
+
+    def queue_warning(self, asyntsg):
+        if not hasattr(self, "early_warnings"):
+            self.early_warnings = {}
+        self.early_warnings[asyntsg.get_title()] = {
+            "station": asyntsg.synoptic_group_station.station.name,
+            "variable": asyntsg.get_title(),
+            "value": asyntsg.value,
+            "low_limit": asyntsg.low_limit,
+            "high_limit": asyntsg.high_limit,
+        }
+
+    def send_early_warning_emails(self):
+        if len(getattr(self, "early_warnings", {})) == 0:
+            return
+        emails = [x.email for x in self.earlywarningemail_set.all()]
+        content = ""
+        for var in self.early_warnings:
+            content += self._get_early_warning_line(self.early_warnings[var])
+        send_mail(
+            _("Enhydris early warning"), content, settings.DEFAULT_FROM_EMAIL, emails
+        )
+
+    def _get_early_warning_line(self, data):
+        station = data["station"]
+        variable = data["variable"]
+        value = data["value"]
+        if data["high_limit"] is not None and value > data["high_limit"]:
+            lowhigh = "high"
+            limit = data["high_limit"]
+        else:
+            lowhigh = "low"
+            limit = data["low_limit"]
+        return f"{station} {variable} {value} ({lowhigh} limit {limit})\n"
+
+
+class EarlyWarningEmail(models.Model):
+    synoptic_group = models.ForeignKey(SynopticGroup, on_delete=models.CASCADE)
+    email = models.EmailField()
+
+    class Meta:
+        verbose_name = _("Email address to send early warnings")
+        verbose_name_plural = _("Where to send early warnings")
 
 
 class SynopticGroupStation(models.Model):
@@ -132,8 +176,10 @@ class SynopticGroupStation(models.Model):
             asyntsg.value_status = "error"
         elif asyntsg.low_limit is not None and asyntsg.value < asyntsg.low_limit:
             asyntsg.value_status = "low"
+            self.synoptic_group.queue_warning(asyntsg)
         elif asyntsg.high_limit is not None and asyntsg.value > asyntsg.high_limit:
             asyntsg.value_status = "high"
+            self.synoptic_group.queue_warning(asyntsg)
         else:
             asyntsg.value_status = "ok"
 
