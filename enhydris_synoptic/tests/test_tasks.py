@@ -8,6 +8,7 @@ from unittest import skipUnless
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
 
@@ -18,6 +19,7 @@ from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 
 from enhydris.tests.test_views import SeleniumTestCase
+from enhydris_synoptic import models
 from enhydris_synoptic.tasks import create_static_files
 
 from .data import TestData
@@ -377,3 +379,71 @@ class TimeseriesWithOneRecordTestCase(TestCase):
         # Check that the array was made from empty data
         datastr = open(filename.replace("png", "dat")).read()
         self.assertEqual(datastr, "()")
+
+
+@RandomSynopticRoot()
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class EmailTestCase(TestCase):
+    def setUp(self):
+        self.data = TestData()
+
+    def _set_limits(self, low_temperature, high_gust):
+        self.data.stsg1_4.high_limit = high_gust
+        self.data.stsg1_4.save()
+        self.data.stsg1_2.low_limit = low_temperature
+        self.data.stsg1_2.save()
+
+    def test_sends_email_if_emails_are_registered(self):
+        models.EarlyWarningEmail.objects.create(
+            synoptic_group=self.data.sg1, email="someone@blackhole.com"
+        )
+        create_static_files()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_does_not_send_email_if_no_emails_are_registered(self):
+        create_static_files()
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_does_not_send_email_if_limits_are_not_exceeded(self):
+        models.EarlyWarningEmail.objects.create(
+            synoptic_group=self.data.sg1, email="someone@blackhole.com"
+        )
+        self._set_limits(low_temperature=10, high_gust=5)
+        create_static_files()
+        self.assertEqual(len(mail.outbox), 0)
+
+
+@RandomSynopticRoot()
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="noreply@enhydris.com",
+)
+class EmailContentTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.data = TestData()
+        models.EarlyWarningEmail.objects.create(
+            synoptic_group=cls.data.sg1, email="someone@blackhole.com"
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        create_static_files()
+        cls.message = mail.outbox[0].message()
+
+    def test_subject(self):
+        self.assertEqual(self.message["Subject"], "Enhydris early warning")
+
+    def test_from(self):
+        self.assertEqual(self.message["From"], "noreply@enhydris.com")
+
+    def test_to(self):
+        self.assertEqual(self.message["To"], "someone@blackhole.com")
+
+    def test_payload(self):
+        self.assertEqual(
+            self.message.get_payload(),
+            "Komboti Air temperature 17.0 (low limit 17.1)\n"
+            "Komboti Wind 4.1 (high limit 4.0)\n",
+        )

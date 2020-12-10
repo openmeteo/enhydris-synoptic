@@ -1,7 +1,11 @@
 from django.contrib import admin
 
 from enhydris.models import TimeseriesGroup
-from enhydris_synoptic.models import SynopticGroup, SynopticGroupStation
+from enhydris_synoptic.models import (
+    EarlyWarningEmail,
+    SynopticGroup,
+    SynopticGroupStation,
+)
 
 
 class StationInline(admin.TabularInline):
@@ -20,9 +24,14 @@ class StationInline(admin.TabularInline):
         return formset
 
 
+class EmailInline(admin.TabularInline):
+    model = EarlyWarningEmail
+    extra = 1
+
+
 @admin.register(SynopticGroup)
 class GroupAdmin(admin.ModelAdmin):
-    inlines = [StationInline]
+    inlines = [StationInline, EmailInline]
     exclude = ["stations"]
 
 

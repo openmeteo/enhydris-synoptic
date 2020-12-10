@@ -97,6 +97,7 @@ def _render_station_charts(synstation):
 def render_synoptic_group(synoptic_group):
     _render_only_group(synoptic_group)
     _render_group_stations(synoptic_group)
+    synoptic_group.send_early_warning_emails()
 
 
 def _render_only_group(synoptic_group):
