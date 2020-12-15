@@ -433,7 +433,7 @@ class EmailContentTestCase(TestCase):
         cls.message = mail.outbox[0].message()
 
     def test_subject(self):
-        self.assertEqual(self.message["Subject"], "Enhydris early warning")
+        self.assertEqual(self.message["Subject"], "Enhydris early warning (Komboti)")
 
     def test_from(self):
         self.assertEqual(self.message["From"], "noreply@enhydris.com")
@@ -444,6 +444,17 @@ class EmailContentTestCase(TestCase):
     def test_payload(self):
         self.assertEqual(
             self.message.get_payload(),
-            "Komboti Air temperature 17.0 (low limit 17.1)\n"
-            "Komboti Wind 4.1 (high limit 4.0)\n",
+            "Komboti 2015-10-22 15:20 Air temperature 17.0 (low limit 17.1)\n"
+            "Komboti 2015-10-22 15:20 Wind 4.1 (high limit 4.0)\n",
         )
+
+
+class EmailSubjectTestCase(TestCase):
+    def test_subject(self):
+        synoptic_group = models.SynopticGroup()
+        synoptic_group.early_warnings = {
+            "one": {"station": "Komboti"},
+            "two": {"station": "Agios Spyridon"},
+        }
+        expected_subject = "Enhydris early warning (Komboti, Agios Spyridon)"
+        self.assertEqual(synoptic_group._get_warning_email_subject(), expected_subject)

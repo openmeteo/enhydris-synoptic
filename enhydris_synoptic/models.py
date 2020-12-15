@@ -44,8 +44,10 @@ class SynopticGroup(models.Model):
     def queue_warning(self, asyntsg):
         if not hasattr(self, "early_warnings"):
             self.early_warnings = {}
+        timestamp = asyntsg.synoptic_group_station.last_common_date.replace(tzinfo=None)
         self.early_warnings[asyntsg.get_title()] = {
             "station": asyntsg.synoptic_group_station.station.name,
+            "timestamp": timestamp.isoformat(sep=" ", timespec="minutes"),
             "variable": asyntsg.get_title(),
             "value": asyntsg.value,
             "low_limit": asyntsg.low_limit,
@@ -59,21 +61,25 @@ class SynopticGroup(models.Model):
         content = ""
         for var in self.early_warnings:
             content += self._get_early_warning_line(self.early_warnings[var])
-        send_mail(
-            _("Enhydris early warning"), content, settings.DEFAULT_FROM_EMAIL, emails
-        )
+        subject = self._get_warning_email_subject()
+        send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, emails)
+
+    def _get_warning_email_subject(self):
+        stations = ", ".join({v["station"] for k, v in self.early_warnings.items()})
+        return _("Enhydris early warning ({})").format(stations)
 
     def _get_early_warning_line(self, data):
         station = data["station"]
         variable = data["variable"]
         value = data["value"]
+        timestamp = data["timestamp"]
         if data["high_limit"] is not None and value > data["high_limit"]:
             lowhigh = "high"
             limit = data["high_limit"]
         else:
             lowhigh = "low"
             limit = data["low_limit"]
-        return f"{station} {variable} {value} ({lowhigh} limit {limit})\n"
+        return f"{station} {timestamp} {variable} {value} ({lowhigh} limit {limit})\n"
 
 
 class EarlyWarningEmail(models.Model):
