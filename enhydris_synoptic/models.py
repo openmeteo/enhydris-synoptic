@@ -65,7 +65,9 @@ class SynopticGroup(models.Model):
         send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, emails)
 
     def _get_warning_email_subject(self):
-        stations = ", ".join({v["station"] for k, v in self.early_warnings.items()})
+        stations = list({v["station"] for k, v in self.early_warnings.items()})
+        stations.sort()
+        stations = ", ".join(stations)
         return _("Enhydris early warning ({})").format(stations)
 
     def _get_early_warning_line(self, data):

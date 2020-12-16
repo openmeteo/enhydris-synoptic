@@ -456,5 +456,5 @@ class EmailSubjectTestCase(TestCase):
             "one": {"station": "Komboti"},
             "two": {"station": "Agios Spyridon"},
         }
-        expected_subject = "Enhydris early warning (Komboti, Agios Spyridon)"
+        expected_subject = "Enhydris early warning (Agios Spyridon, Komboti)"
         self.assertEqual(synoptic_group._get_warning_email_subject(), expected_subject)
