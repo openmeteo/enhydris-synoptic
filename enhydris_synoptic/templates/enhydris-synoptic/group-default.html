@@ -10,7 +10,7 @@
 
 {% block extracss %}
   {{ block.super }}
-  <link type="text/css" rel="stylesheet" href="{% static 'css/leaflet.groupedlayercontrol.min.css' %}">
+  <link type="text/css" rel="stylesheet" href="{% static 'css/vendor/leaflet.groupedlayercontrol.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -27,13 +27,12 @@
 {% block mainjs %}
   {{ block.super }}
   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js"></script>
-  <script type="text/javascript" src="{% static 'js/L.Control.MousePosition.js' %}"></script>
-  <script type="text/javascript" src="{% static 'js/leaflet.groupedlayercontrol.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/vendor/L.Control.MousePosition.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/vendor/leaflet.groupedlayercontrol.min.js' %}"></script>
   <script type="text/javascript">
     enhydris.mapBaseLayers = {{ map_base_layers|safe }};
     enhydris.mapDefaultBaseLayer = "{{ map_default_base_layer|safe }}";
     enhydris.mapViewport = {{ map_viewport|safe }};
-    enhydris.mapMarkers = {{ map_markers|safe }};
     enhydris.searchString = {{ searchString|safe }};
     enhydris.mapStations = [];
     {% for object in object.synopticgroupstation_set.all %}

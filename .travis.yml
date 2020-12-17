@@ -6,6 +6,7 @@ python:
  - "3.7"
 
 addons:
+  chrome: stable
   postgresql: "10"
   apt:
     packages:
@@ -24,6 +25,9 @@ install:
  - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install 'gdal==2.2.3'
  - pip install black flake8 isort codecov coverage
  - pip install psycopg2==2.7.4
+ - wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE
+ - wget https://chromedriver.storage.googleapis.com/`cat LATEST_RELEASE`/chromedriver_linux64.zip
+ - sudo unzip chromedriver_linux64.zip -d /usr/local/bin
  - pip install -r requirements.txt
  - pip install -r requirements-dev.txt
  - git clone https://github.com/openmeteo/enhydris.git ../enhydris
@@ -37,9 +41,6 @@ before_script:
  - cd ../enhydris
  - ln -s ../enhydris-synoptic/enhydris_synoptic .
  - mkdir /tmp/enhydris-synoptic-root
-
-env:
- - SELENIUM_BROWSER=PhantomJS
 
 script:
  - python manage.py makemigrations --check
