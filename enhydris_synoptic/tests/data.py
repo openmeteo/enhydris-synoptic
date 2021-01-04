@@ -219,7 +219,9 @@ class TestData:
         self._create_timeseries_for_agios_wind_speed()
 
     def _create_timeseries_object(self, timeseries_group):
-        mommy.make(Timeseries, timeseries_group=timeseries_group, type=Timeseries.RAW)
+        mommy.make(
+            Timeseries, timeseries_group=timeseries_group, type=Timeseries.INITIAL
+        )
 
     def _create_timeseries_for_komboti_rain(self):
         self._create_timeseries_object(self.tsg_komboti_rain)
