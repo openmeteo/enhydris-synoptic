@@ -187,7 +187,9 @@ class FreshnessTestCase(TestCase):
             timeseries_group__time_zone__utc_offset=120,
         )
         mommy.make(
-            Timeseries, timeseries_group=self.stg.timeseries_group, type=Timeseries.RAW
+            Timeseries,
+            timeseries_group=self.stg.timeseries_group,
+            type=Timeseries.INITIAL,
         )
         self.stg.timeseries_group.default_timeseries.set_data(
             StringIO(

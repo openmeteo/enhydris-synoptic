@@ -84,7 +84,10 @@ def _render_station_page(synstation):
         "enhydris-synoptic/groupstation.html", context={"object": synstation}
     )
     filename = os.path.join(
-        synstation.synoptic_group.slug, "station", str(synstation.id), "index.html"
+        synstation.synoptic_group.slug,
+        "station",
+        str(synstation.station.id),
+        "index.html",
     )
     File(filename).write(output)
 
