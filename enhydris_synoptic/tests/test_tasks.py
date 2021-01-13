@@ -153,7 +153,7 @@ class StationReportTestCase(TestCase):
             settings.ENHYDRIS_SYNOPTIC_ROOT,
             cls.data.sg1.slug,
             "station",
-            str(cls.data.sgs_agios.id),
+            str(cls.data.sgs_agios.station.id),
             "index.html",
         )
         with open(filename) as f:
@@ -194,7 +194,7 @@ class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
             settings.ENHYDRIS_SYNOPTIC_ROOT,
             self.data.sg1.slug,
             "station",
-            str(self.data.sgs_agios.id),
+            str(self.data.sgs_agios.station.id),
             "index.html",
         )
         self.assertHtmlContains(filename, "Άγιος Αθανάσιος")
