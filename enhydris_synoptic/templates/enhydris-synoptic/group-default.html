@@ -13,8 +13,12 @@
   <link type="text/css" rel="stylesheet" href="{% static 'css/vendor/leaflet.groupedlayercontrol.min.css' %}">
 {% endblock %}
 
+{% block body_classes %}
+  page page-map-full
+{% endblock %}
+
 {% block content %}
-  <div id="synoptic-map-container">
+  <div id="map map-fullpage">
     <div id="mapid"></div>
     <p id="timezone-info">
       {% blocktrans with timezone=object.time_zone.code %}
