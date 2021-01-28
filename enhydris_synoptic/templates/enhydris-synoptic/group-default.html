@@ -32,7 +32,9 @@
   {{ block.super }}
   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js"></script>
   <script type="text/javascript" src="{% static 'js/vendor/L.Control.MousePosition.js' %}"></script>
-  <script type="text/javascript" src="{% static 'js/vendor/leaflet.groupedlayercontrol.min.js' %}"></script>
+  {% block leaflet_plugins %}
+    <script type="text/javascript" src="{% static 'js/vendor/leaflet.groupedlayercontrol.min.js' %}"></script>
+  {% endblock %}
   <script type="text/javascript">
     enhydris.mapBaseLayers = {{ map_base_layers|safe }};
     enhydris.mapDefaultBaseLayer = "{{ map_default_base_layer|safe }}";
