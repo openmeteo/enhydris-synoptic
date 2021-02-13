@@ -200,8 +200,16 @@ class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
         self.assertHtmlContains(filename, "Άγιος Αθανάσιος")
 
 
+class EarlyWarningTestMixin:
+    def _set_limits(self, low_temperature, high_gust):
+        self.data.stsg1_4.high_limit = high_gust
+        self.data.stsg1_4.save()
+        self.data.stsg1_2.low_limit = low_temperature
+        self.data.stsg1_2.save()
+
+
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
-class MapTestCase(SeleniumTestCase):
+class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
 
     komboti_div_icon = PageElement(
         By.XPATH,
@@ -298,6 +306,7 @@ class MapTestCase(SeleniumTestCase):
         self.assertEqual(date.text, "22 Oct 2015 14:20")
 
     def test_value_status(self):
+        self._set_limits(low_temperature=17.1, high_gust=4)
         create_static_files()
         self.selenium.get(
             "{}/static/synoptic/{}/index.html".format(
@@ -383,17 +392,12 @@ class TimeseriesWithOneRecordTestCase(TestCase):
 
 @RandomSynopticRoot()
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class EmailTestCase(TestCase):
+class EmailTestCase(TestCase, EarlyWarningTestMixin):
     def setUp(self):
         self.data = TestData()
 
-    def _set_limits(self, low_temperature, high_gust):
-        self.data.stsg1_4.high_limit = high_gust
-        self.data.stsg1_4.save()
-        self.data.stsg1_2.low_limit = low_temperature
-        self.data.stsg1_2.save()
-
     def test_sends_email_if_emails_are_registered(self):
+        self._set_limits(low_temperature=17.1, high_gust=4)
         models.EarlyWarningEmail.objects.create(
             synoptic_group=self.data.sg1, email="someone@blackhole.com"
         )
@@ -401,6 +405,7 @@ class EmailTestCase(TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
     def test_does_not_send_email_if_no_emails_are_registered(self):
+        self._set_limits(low_temperature=17.1, high_gust=4)
         create_static_files()
         self.assertEqual(len(mail.outbox), 0)
 
@@ -418,10 +423,11 @@ class EmailTestCase(TestCase):
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
     DEFAULT_FROM_EMAIL="noreply@enhydris.com",
 )
-class EmailContentTestCase(TestCase):
+class EmailContentTestCase(TestCase, EarlyWarningTestMixin):
     @classmethod
     def setUpTestData(cls):
         cls.data = TestData()
+        cls._set_limits(cls, low_temperature=17.1, high_gust=4)
         models.EarlyWarningEmail.objects.create(
             synoptic_group=cls.data.sg1, email="someone@blackhole.com"
         )
@@ -444,8 +450,8 @@ class EmailContentTestCase(TestCase):
     def test_payload(self):
         self.assertEqual(
             self.message.get_payload(),
-            "Komboti 2015-10-22 15:20 Air temperature 17.0 (low limit 17.1)\n"
-            "Komboti 2015-10-22 15:20 Wind 4.1 (high limit 4.0)\n",
+            "Komboti Air temperature 2015-10-22 15:20 17.0 (low limit 17.1)\n"
+            "Komboti Wind 2015-10-22 15:20 4.1 (high limit 4.0)\n",
         )
 
 
@@ -458,3 +464,26 @@ class EmailSubjectTestCase(TestCase):
         }
         expected_subject = "Enhydris early warning (Agios Spyridon, Komboti)"
         self.assertEqual(synoptic_group._get_warning_email_subject(), expected_subject)
+
+
+@RandomSynopticRoot()
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="noreply@enhydris.com",
+)
+class RoccEmailContentTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.data = TestData()
+        cls.data.stsg1_2.set_roc_thresholds("10min 0.5")
+        models.EarlyWarningEmail.objects.create(
+            synoptic_group=cls.data.sg1, email="someone@blackhole.com"
+        )
+
+    def test_payload(self):
+        create_static_files()
+        message = mail.outbox[0].message()
+        self.assertEqual(
+            message.get_payload(),
+            "Komboti Air temperature 2015-10-22T15:20  +1.0 in 10min (> 0.5)\n",
+        )

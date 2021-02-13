@@ -1,9 +1,13 @@
 import datetime as dt
+import re
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import IntegrityError, models
+from django.db import DataError, IntegrityError, models
 from django.utils.translation import ugettext as _
+
+import iso8601
+from rocc import Threshold, rocc
 
 from enhydris.models import Station, TimeseriesGroup, TimeZone
 
@@ -41,17 +45,13 @@ class SynopticGroup(models.Model):
     def __str__(self):
         return self.name
 
-    def queue_warning(self, asyntsg):
+    def queue_warning(self, asyntsg, warning_text):
         if not hasattr(self, "early_warnings"):
             self.early_warnings = {}
-        timestamp = asyntsg.synoptic_group_station.last_common_date.replace(tzinfo=None)
         self.early_warnings[asyntsg.get_title()] = {
             "station": asyntsg.synoptic_group_station.station.name,
-            "timestamp": timestamp.isoformat(sep=" ", timespec="minutes"),
             "variable": asyntsg.get_title(),
-            "value": asyntsg.value,
-            "low_limit": asyntsg.low_limit,
-            "high_limit": asyntsg.high_limit,
+            "warning_text": warning_text,
         }
 
     def send_early_warning_emails(self):
@@ -60,7 +60,7 @@ class SynopticGroup(models.Model):
         emails = [x.email for x in self.earlywarningemail_set.all()]
         content = ""
         for var in self.early_warnings:
-            content += self._get_early_warning_line(self.early_warnings[var])
+            content += self._get_early_warning_text(self.early_warnings[var])
         subject = self._get_warning_email_subject()
         send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, emails)
 
@@ -70,18 +70,11 @@ class SynopticGroup(models.Model):
         stations = ", ".join(stations)
         return _("Enhydris early warning ({})").format(stations)
 
-    def _get_early_warning_line(self, data):
+    def _get_early_warning_text(self, data):
         station = data["station"]
         variable = data["variable"]
-        value = data["value"]
-        timestamp = data["timestamp"]
-        if data["high_limit"] is not None and value > data["high_limit"]:
-            lowhigh = "high"
-            limit = data["high_limit"]
-        else:
-            lowhigh = "low"
-            limit = data["low_limit"]
-        return f"{station} {timestamp} {variable} {value} ({lowhigh} limit {limit})\n"
+        text = data["warning_text"]
+        return f"{station} {variable} {text}\n"
 
 
 class EarlyWarningEmail(models.Model):
@@ -184,12 +177,65 @@ class SynopticGroupStation(models.Model):
             asyntsg.value_status = "error"
         elif asyntsg.low_limit is not None and asyntsg.value < asyntsg.low_limit:
             asyntsg.value_status = "low"
-            self.synoptic_group.queue_warning(asyntsg)
+            self.synoptic_group.queue_warning(
+                asyntsg,
+                self._out_of_limits_message(asyntsg, f"low limit {asyntsg.low_limit}"),
+            )
         elif asyntsg.high_limit is not None and asyntsg.value > asyntsg.high_limit:
             asyntsg.value_status = "high"
-            self.synoptic_group.queue_warning(asyntsg)
+            clarif = f"high limit {asyntsg.high_limit}"
+            self.synoptic_group.queue_warning(
+                asyntsg, self._out_of_limits_message(asyntsg, clarif)
+            )
         else:
             asyntsg.value_status = "ok"
+
+        check_rate_of_change_results = self._check_rate_of_change(asyntsg)
+        if check_rate_of_change_results:
+            # For the time being we don't set the status here, we just send a warning.
+            self.synoptic_group.queue_warning(asyntsg, check_rate_of_change_results)
+
+    def _out_of_limits_message(self, asyntsg, clarification):
+        timestr = self.last_common_date.replace(tzinfo=None).isoformat(
+            sep=" ", timespec="minutes"
+        )
+        return f"{timestr} {asyntsg.value} ({clarification})"
+
+    def _check_rate_of_change(self, asyntsg):
+        start_date = self.last_common_date - self._get_roc_timedelta(asyntsg)
+        timeseries = asyntsg.timeseries_group.default_timeseries.get_data(
+            start_date=start_date, end_date=self.last_common_date
+        )
+        messages = rocc(
+            timeseries=timeseries,
+            thresholds=asyntsg.roc_thresholds,
+            symmetric=asyntsg.symmetric_rocc,
+            flag="",
+        )
+        if not messages:
+            return None
+        message = messages[-1]
+        date = iso8601.parse_date(message.split()[0]).replace(tzinfo=None)
+        if date == self.last_common_date.replace(tzinfo=None):
+            return message
+
+    def _get_roc_timedelta(self, asyntsg):
+        roc_timedeltas = [
+            self._parse_timedelta(x.split()[0])
+            for x in asyntsg.get_roc_thresholds_as_text().splitlines()
+        ]
+        if roc_timedeltas:
+            return max(roc_timedeltas)
+        else:
+            return dt.timedelta(0)
+
+    def _parse_timedelta(self, stepspec):
+        if stepspec.endswith("min"):
+            return dt.timedelta(minutes=int(stepspec[:-3]))
+        elif stepspec[-1] == "H":
+            return dt.timedelta(hours=int(stepspec[:-1]))
+        elif stepspec[-1] == "D":
+            return dt.timedelta(days=int(stepspec[:-1]))
 
     @property
     def last_common_date(self):
@@ -334,3 +380,71 @@ class SynopticTimeseriesGroup(models.Model):
         if self.subtitle:
             result += " (" + self.subtitle + ")"
         return result
+
+    # Rate-of-change check stuff
+    # This code has been largely copied from enhydris_autoprocess.models.  For that
+    # matter, it has not been unit tested.  We should do something to not have this
+    # duplication.
+    symmetric_rocc = models.BooleanField(
+        help_text=_(
+            "If this is selected, it is the absolute value of the change that matters, "
+            "not its direction. In this case, the allowed differences must all be "
+            "positive. If it's not selected, only rates larger than a positive "
+            "or smaller than a negative difference are considered."
+        ),
+        default=False,
+        verbose_name=_("Symmetric"),
+    )
+
+    @property
+    def roc_thresholds(self):
+        thresholds = RateOfChangeThreshold.objects.filter(
+            synoptic_timeseries_group=self
+        ).order_by("delta_t")
+        result = []
+        for threshold in thresholds:
+            result.append(Threshold(threshold.delta_t, threshold.allowed_diff))
+        return result
+
+    def get_roc_thresholds_as_text(self):
+        result = ""
+        for threshold in self.roc_thresholds:
+            result += f"{threshold.delta_t}\t{threshold.allowed_diff}\n"
+        return result
+
+    def set_roc_thresholds(self, s):
+        self.rateofchangethreshold_set.all().delete()
+        for line in s.splitlines():
+            delta_t, allowed_diff = line.split()
+            RateOfChangeThreshold(
+                synoptic_timeseries_group=self,
+                delta_t=delta_t,
+                allowed_diff=allowed_diff,
+            ).save()
+
+    # End of rate-of-change-check stuff
+
+
+# More rate-of-change stuff, likewise copied from elsewhere (see comment above).
+class RateOfChangeThreshold(models.Model):
+    synoptic_timeseries_group = models.ForeignKey(
+        SynopticTimeseriesGroup, on_delete=models.CASCADE
+    )
+    delta_t = models.CharField(max_length=6)
+    allowed_diff = models.FloatField()
+
+    @classmethod
+    def is_delta_t_valid(cls, delta_t):
+        m = re.match(r"(\d+)(\w+)", delta_t)
+        if m is None or not int(m.group(1)) or m.group(2) not in ("min", "H", "D"):
+            return False
+        else:
+            return True
+
+    def save(self, *args, **kwargs):
+        if not self.is_delta_t_valid(self.delta_t):
+            raise DataError(f'"{ self.delta_t }" is not a valid delta_t')
+        super().save(*args, **kwargs)
+
+
+# End of rate-of-change stuff
