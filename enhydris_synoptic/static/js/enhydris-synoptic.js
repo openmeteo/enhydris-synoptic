@@ -38,9 +38,12 @@ const getDataLayers = function () {
   for (let i = 0; i < enhydris.mapStations.length; i += 1) {
     const station = enhydris.mapStations[i];
     Object.keys(station.last_values).forEach(function (key) {
-      if (key in layers) return;
-      layers[key] = L.featureGroup();
-      layers[key].addTo(enhydris.map.leafletMap);
+      if (!(key in layers)) {
+        layers[key] = L.featureGroup();
+        if (Object.keys(layers).length === 1) {
+          layers[key].addTo(enhydris.map.leafletMap);
+        }
+      }
     });
   }
   return layers;
