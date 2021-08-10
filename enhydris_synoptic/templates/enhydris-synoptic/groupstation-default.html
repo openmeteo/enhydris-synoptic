@@ -1,6 +1,12 @@
 {% extends "enhydris-synoptic/base.html" %}
 {% load i18n %}
 
+{% block extracss %}
+  <style>
+    header.page-header { position: relative; };
+  </style>
+{% endblock %}
+
 {% block title %}
   {% blocktrans with name=object.station.name %}
     Conditions at {{ name }}
