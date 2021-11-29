@@ -2,7 +2,9 @@ import datetime as dt
 import textwrap
 from io import StringIO
 
+from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.contrib.sites.models import Site
 
 from model_mommy import mommy
 
@@ -25,6 +27,9 @@ class TestData:
         self._create_timeseries_data()
 
     def _create_stations(self):
+        site_id = settings.SITE_ID
+        if not Site.objects.filter(id=site_id).exists():
+            mommy.make(Site, id=site_id, domain="example.com", name="example.com")
         self.station_komboti = mommy.make(
             Station, name="Komboti", geom=Point(x=21.06071, y=39.09518, srid=4326)
         )

@@ -209,6 +209,11 @@ class EarlyWarningTestMixin:
 
 
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
+@override_settings(
+    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}},
+    SITE_ID=1,
+    ENHYDRIS_SITES_FOR_NEW_STATIONS=set(),
+)
 class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
 
     komboti_div_icon = PageElement(
