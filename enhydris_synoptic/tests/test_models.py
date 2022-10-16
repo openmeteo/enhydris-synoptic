@@ -9,6 +9,7 @@ from freezegun import freeze_time
 from model_mommy import mommy
 
 from enhydris.models import Station, Timeseries, TimeseriesGroup, TimeZone
+from enhydris.tests import ClearCacheMixin
 from enhydris_synoptic.models import (
     SynopticGroup,
     SynopticGroupStation,
@@ -139,7 +140,7 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
         self.sgs1.check_timeseries_groups_integrity()  # No exception thrown
 
 
-class LastCommonDateTestCase(TestCase):
+class LastCommonDateTestCase(ClearCacheMixin, TestCase):
     def setUp(self):
         self.data = TestData()
 
@@ -163,7 +164,7 @@ class LastCommonDateTestCase(TestCase):
         )
 
 
-class SynopticGroupStationSynopticTimeseriesGroupTestCase(TestCase):
+class SynopticGroupStationSynopticTimeseriesGroupTestCase(ClearCacheMixin, TestCase):
     def setUp(self):
         self.data = TestData()
 
@@ -176,7 +177,7 @@ class SynopticGroupStationSynopticTimeseriesGroupTestCase(TestCase):
         self.assertEqual(len(self.data.sgs_agios.synoptic_timeseries_groups[0].data), 2)
 
 
-class FreshnessTestCase(TestCase):
+class FreshnessTestCase(ClearCacheMixin, TestCase):
     def setUp(self):
         self.stg = mommy.make(
             SynopticTimeseriesGroup,
