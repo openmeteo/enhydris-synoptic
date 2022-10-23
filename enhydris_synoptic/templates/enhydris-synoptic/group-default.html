@@ -21,7 +21,7 @@
   <div id="map map-fullpage">
     <div id="mapid"></div>
     <p id="timezone-info">
-      {% blocktrans with timezone=object.time_zone.code %}
+      {% blocktrans with timezone=object.timezone.code %}
         All times are in {{ timezone }}
       {% endblocktrans %}
     </p>

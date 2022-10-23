@@ -1,5 +1,6 @@
 import datetime as dt
 import re
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -9,7 +10,7 @@ from django.utils.translation import ugettext as _
 import iso8601
 from rocc import Threshold, rocc
 
-from enhydris.models import Station, TimeseriesGroup, TimeZone
+from enhydris.models import DISPLAY_TIMEZONE_CHOICES, Station, TimeseriesGroup
 
 # NOTE: Confusingly, there are three distinct uses of "group" here. They refer to
 # different things:
@@ -33,7 +34,12 @@ class SynopticGroup(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True, help_text="Identifier to be used in URL")
     stations = models.ManyToManyField(Station, through="SynopticGroupStation")
-    time_zone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
+    timezone = models.CharField(
+        max_length=50,
+        default="Etc/GMT",
+        verbose_name=_("Time zone"),
+        choices=DISPLAY_TIMEZONE_CHOICES,
+    )
     fresh_time_limit = models.DurationField(
         help_text=(
             "Maximum time that may have elapsed for the data to be considered fresh. "
@@ -257,13 +263,13 @@ class SynopticGroupStation(models.Model):
     @property
     def last_common_date_pretty(self):
         return self.last_common_date and self.last_common_date.strftime(
-            "%d %b %Y %H:%M %Z (%z)"
+            "%d %b %Y %H:%M (%z)"
         )
 
     @property
     def last_common_date_pretty_without_timezone(self):
         return self.last_common_date and self.last_common_date.astimezone(
-            self.synoptic_group.time_zone.as_tzinfo
+            ZoneInfo(self.synoptic_group.timezone)
         ).strftime("%d %b %Y %H:%M")
 
     @property

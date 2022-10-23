@@ -104,7 +104,7 @@ class ChartTestCase(ClearCacheMixin, TestCase):
                 [days_since_epoch(2015, 10, 23, 15, 20), 38.5],
             ]
         )
-        np.testing.assert_allclose(data_array, desired_result)
+        np.testing.assert_allclose(data_array, desired_result, rtol=1e-6)
 
     def test_grouped_chart(self):
         # Here we test the wind speed chart, which is grouped with wind gust.
@@ -139,8 +139,8 @@ class ChartTestCase(ClearCacheMixin, TestCase):
                 ]
             ),
         )
-        np.testing.assert_allclose(data_array[0], desired_result[0])
-        np.testing.assert_allclose(data_array[1], desired_result[1])
+        np.testing.assert_allclose(data_array[0], desired_result[0], rtol=1e-6)
+        np.testing.assert_allclose(data_array[1], desired_result[1], rtol=1e-6)
 
 
 @RandomSynopticRoot()
@@ -167,7 +167,7 @@ class StationReportTestCase(ClearCacheMixin, TestCase):
         self.assertEqual(self.values[i].contents[0].strip(), expected_value)
 
     def test_date(self):
-        self._check(0, "Last update", "23 Oct 2015 15:20 EET (+0200)")
+        self._check(0, "Last update", "23 Oct 2015 15:20 (+0200)")
 
     def test_rain(self):
         self._check(2, "Rain", "0.2 mm")
@@ -380,7 +380,7 @@ class TimeseriesWithOneRecordTestCase(ClearCacheMixin, TestCase):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
         self.data.tsg_komboti_temperature.default_timeseries.set_data(
-            StringIO("2015-10-22 15:10,0,\n")
+            StringIO("2015-10-22 15:10,0,\n"), default_timezone="Etc/GMT-2"
         )
         create_static_files()
 

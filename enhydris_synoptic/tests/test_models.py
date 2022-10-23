@@ -1,6 +1,7 @@
 import datetime as dt
 import textwrap
 from io import StringIO
+from zoneinfo import ZoneInfo
 
 from django.db import IntegrityError
 from django.test import TestCase
@@ -8,7 +9,7 @@ from django.test import TestCase
 from freezegun import freeze_time
 from model_mommy import mommy
 
-from enhydris.models import Station, Timeseries, TimeseriesGroup, TimeZone
+from enhydris.models import Station, Timeseries, TimeseriesGroup
 from enhydris.tests import ClearCacheMixin
 from enhydris_synoptic.models import (
     SynopticGroup,
@@ -25,7 +26,7 @@ class SynopticGroupTestCase(TestCase):
             name="hello",
             slug="world",
             fresh_time_limit=dt.timedelta(minutes=60),
-            time_zone=TimeZone.objects.create(code="EET", utc_offset=120),
+            timezone="Etc/GMT-2",
         )
         sg.save()
         self.assertEqual(SynopticGroup.objects.first().slug, "world")
@@ -91,7 +92,7 @@ class SynopticGroupStationCheckIntegrityTestCase(TestCase):
         sg1 = SynopticGroup.objects.create(
             slug="mygroup",
             fresh_time_limit=dt.timedelta(minutes=10),
-            time_zone=TimeZone.objects.create(code="EET", utc_offset=120),
+            timezone="Etc/GMT-2",
         )
 
         # Create SynopticGroupStation
@@ -147,14 +148,12 @@ class LastCommonDateTestCase(ClearCacheMixin, TestCase):
     def test_last_common_date(self):
         self.assertEqual(
             self.data.sgs_agios.last_common_date,
-            dt.datetime(
-                2015, 10, 23, 15, 20, tzinfo=dt.timezone(dt.timedelta(hours=2), "EET")
-            ),
+            dt.datetime(2015, 10, 23, 15, 20, tzinfo=ZoneInfo("Etc/GMT-2")),
         )
 
     def test_last_common_date_pretty(self):
         self.assertEqual(
-            self.data.sgs_agios.last_common_date_pretty, "23 Oct 2015 15:20 EET (+0200)"
+            self.data.sgs_agios.last_common_date_pretty, "23 Oct 2015 15:20 (+0200)"
         )
 
     def test_last_common_date_pretty_without_timezone(self):
@@ -184,8 +183,7 @@ class FreshnessTestCase(ClearCacheMixin, TestCase):
             synoptic_group_station__synoptic_group__fresh_time_limit=dt.timedelta(
                 minutes=60
             ),
-            timeseries_group__time_zone__code="EET",
-            timeseries_group__time_zone__utc_offset=120,
+            timeseries_group__gentity__display_timezone="Etc/GMT-2",
         )
         mommy.make(
             Timeseries,
@@ -201,7 +199,8 @@ class FreshnessTestCase(ClearCacheMixin, TestCase):
                     2015-10-22 15:20,0,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     @freeze_time("2015-10-22 14:19:59")

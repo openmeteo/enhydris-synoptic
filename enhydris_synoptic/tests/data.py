@@ -8,7 +8,7 @@ from django.contrib.sites.models import Site
 
 from model_mommy import mommy
 
-from enhydris.models import Station, Timeseries, TimeseriesGroup, TimeZone, Variable
+from enhydris.models import Station, Timeseries, TimeseriesGroup, Variable
 from enhydris_synoptic.models import (
     SynopticGroup,
     SynopticGroupStation,
@@ -31,15 +31,22 @@ class TestData:
         if not Site.objects.filter(id=site_id).exists():
             mommy.make(Site, id=site_id, domain="example.com", name="example.com")
         self.station_komboti = mommy.make(
-            Station, name="Komboti", geom=Point(x=21.06071, y=39.09518, srid=4326)
+            Station,
+            name="Komboti",
+            geom=Point(x=21.06071, y=39.09518, srid=4326),
+            display_timezone="Etc/GMT-2",
         )
         self.station_agios = mommy.make(
             Station,
             name="Άγιος Αθανάσιος",
             geom=Point(x=20.87591, y=39.14904, srid=4326),
+            display_timezone="Etc/GMT-2",
         )
         self.station_arta = mommy.make(
-            Station, name="Arta", geom=Point(x=20.97527, y=39.15104, srid=4326)
+            Station,
+            name="Arta",
+            geom=Point(x=20.97527, y=39.15104, srid=4326),
+            display_timezone="Etc/GMT-2",
         )
 
     def _create_synoptic_group(self):
@@ -47,7 +54,7 @@ class TestData:
             SynopticGroup,
             slug="mygroup",
             fresh_time_limit=dt.timedelta(minutes=60),
-            time_zone=TimeZone.objects.create(code="CET", utc_offset=60),
+            timezone="Etc/GMT-1",
         )
 
     def _create_synoptic_group_stations(self):
@@ -91,8 +98,6 @@ class TestData:
             name="Rain",
             precision=0,
             unit_of_measurement__symbol="mm",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
         self.tsg_komboti_temperature = mommy.make(
             TimeseriesGroup,
@@ -101,8 +106,6 @@ class TestData:
             name="Air temperature",
             precision=0,
             unit_of_measurement__symbol="°C",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
         self.tsg_komboti_wind_speed = mommy.make(
             TimeseriesGroup,
@@ -111,8 +114,6 @@ class TestData:
             name="Wind speed",
             precision=1,
             unit_of_measurement__symbol="m/s",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
         self.tsg_komboti_wind_gust = mommy.make(
             TimeseriesGroup,
@@ -121,8 +122,6 @@ class TestData:
             name="Wind gust",
             precision=1,
             unit_of_measurement__symbol="m/s",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
 
     def _create_timeseries_groups_for_agios(self):
@@ -133,8 +132,6 @@ class TestData:
             name="Rain",
             precision=1,
             unit_of_measurement__symbol="mm",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
         self.tsg_agios_temperature = mommy.make(
             TimeseriesGroup,
@@ -143,8 +140,6 @@ class TestData:
             name="Air temperature",
             precision=1,
             unit_of_measurement__symbol="°C",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
         self.tsg_agios_wind_speed = mommy.make(
             TimeseriesGroup,
@@ -153,8 +148,6 @@ class TestData:
             name="Wind speed",
             precision=1,
             unit_of_measurement__symbol="m/s",
-            time_zone__code="EET",
-            time_zone__utc_offset=120,
         )
 
     def _create_synoptic_timeseries_groups(self):
@@ -237,7 +230,8 @@ class TestData:
                     2015-10-22 15:20,0,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_komboti_temperature(self):
@@ -251,7 +245,8 @@ class TestData:
                     2015-10-22 15:20,17,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_komboti_wind_speed(self):
@@ -265,7 +260,8 @@ class TestData:
                     2015-10-22 15:20,3,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_komboti_wind_gust(self):
@@ -279,7 +275,8 @@ class TestData:
                     2015-10-22 15:20,4.1,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_agios_rain(self):
@@ -294,7 +291,8 @@ class TestData:
                     2015-10-23 15:30,1.4,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_agios_temperature(self):
@@ -308,7 +306,8 @@ class TestData:
                     2015-10-23 15:20,38.5,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
 
     def _create_timeseries_for_agios_wind_speed(self):
@@ -331,5 +330,6 @@ class TestData:
                     2015-10-23 15:20,,
                     """
                 )
-            )
+            ),
+            default_timezone="Etc/GMT-2",
         )
