@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
 
@@ -18,7 +19,7 @@ from django_selenium_clean import PageElement
 from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 
-from enhydris.tests.test_views import SeleniumTestCase
+from enhydris.tests import ClearCacheMixin, SeleniumTestCase
 from enhydris_synoptic import models
 from enhydris_synoptic.tasks import create_static_files
 
@@ -63,7 +64,7 @@ class AssertHtmlContainsMixin:
 
 
 @RandomSynopticRoot()
-class ChartTestCase(TestCase):
+class ChartTestCase(ClearCacheMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -103,7 +104,7 @@ class ChartTestCase(TestCase):
                 [days_since_epoch(2015, 10, 23, 15, 20), 38.5],
             ]
         )
-        np.testing.assert_allclose(data_array, desired_result)
+        np.testing.assert_allclose(data_array, desired_result, rtol=1e-6)
 
     def test_grouped_chart(self):
         # Here we test the wind speed chart, which is grouped with wind gust.
@@ -138,12 +139,12 @@ class ChartTestCase(TestCase):
                 ]
             ),
         )
-        np.testing.assert_allclose(data_array[0], desired_result[0])
-        np.testing.assert_allclose(data_array[1], desired_result[1])
+        np.testing.assert_allclose(data_array[0], desired_result[0], rtol=1e-6)
+        np.testing.assert_allclose(data_array[1], desired_result[1], rtol=1e-6)
 
 
 @RandomSynopticRoot()
-class StationReportTestCase(TestCase):
+class StationReportTestCase(ClearCacheMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -166,7 +167,7 @@ class StationReportTestCase(TestCase):
         self.assertEqual(self.values[i].contents[0].strip(), expected_value)
 
     def test_date(self):
-        self._check(0, "Last update", "23 Oct 2015 15:20 EET (+0200)")
+        self._check(0, "Last update", "23 Oct 2015 15:20 (+0200)")
 
     def test_rain(self):
         self._check(2, "Rain", "0.2 mm")
@@ -179,7 +180,7 @@ class StationReportTestCase(TestCase):
 
 
 @RandomSynopticRoot()
-class AsciiSystemLocaleTestCase(TestCase, AssertHtmlContainsMixin):
+class AsciiSystemLocaleTestCase(ClearCacheMixin, AssertHtmlContainsMixin, TestCase):
     def setUp(self):
         self.saved_locale = locale.setlocale(locale.LC_CTYPE)
         locale.setlocale(locale.LC_CTYPE, "C")
@@ -209,6 +210,11 @@ class EarlyWarningTestMixin:
 
 
 @skipUnless(getattr(settings, "SELENIUM_WEBDRIVERS", False), "Selenium is unconfigured")
+@override_settings(
+    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}},
+    SITE_ID=1,
+    ENHYDRIS_SITES_FOR_NEW_STATIONS=set(),
+)
 class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
 
     komboti_div_icon = PageElement(
@@ -242,6 +248,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
         self._setup_synoptic_root()
+        cache.clear()
 
     def tearDown(self):
         self._teardown_synoptic_root()
@@ -347,7 +354,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
 
 
 @RandomSynopticRoot()
-class EmptyTimeseriesTestCase(TestCase):
+class EmptyTimeseriesTestCase(ClearCacheMixin, TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
@@ -368,12 +375,12 @@ class EmptyTimeseriesTestCase(TestCase):
 
 
 @RandomSynopticRoot()
-class TimeseriesWithOneRecordTestCase(TestCase):
+class TimeseriesWithOneRecordTestCase(ClearCacheMixin, TestCase):
     def setUp(self):
         self.data = TestData()
         settings.TEST_MATPLOTLIB = True
         self.data.tsg_komboti_temperature.default_timeseries.set_data(
-            StringIO("2015-10-22 15:10,0,\n")
+            StringIO("2015-10-22 15:10,0,\n"), default_timezone="Etc/GMT-2"
         )
         create_static_files()
 
@@ -392,7 +399,7 @@ class TimeseriesWithOneRecordTestCase(TestCase):
 
 @RandomSynopticRoot()
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class EmailTestCase(TestCase, EarlyWarningTestMixin):
+class EmailTestCase(ClearCacheMixin, TestCase, EarlyWarningTestMixin):
     def setUp(self):
         self.data = TestData()
 
@@ -423,7 +430,7 @@ class EmailTestCase(TestCase, EarlyWarningTestMixin):
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
     DEFAULT_FROM_EMAIL="noreply@enhydris.com",
 )
-class EmailContentTestCase(TestCase, EarlyWarningTestMixin):
+class EmailContentTestCase(ClearCacheMixin, TestCase, EarlyWarningTestMixin):
     @classmethod
     def setUpTestData(cls):
         cls.data = TestData()
@@ -471,7 +478,7 @@ class EmailSubjectTestCase(TestCase):
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
     DEFAULT_FROM_EMAIL="noreply@enhydris.com",
 )
-class RoccEmailContentTestCase(TestCase):
+class RoccEmailContentTestCase(ClearCacheMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.data = TestData()
