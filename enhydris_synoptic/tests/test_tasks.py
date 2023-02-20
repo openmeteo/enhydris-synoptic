@@ -64,6 +64,22 @@ class AssertHtmlContainsMixin:
 
 
 @RandomSynopticRoot()
+class MainPageTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.data = TestData()
+        create_static_files()
+
+    def test_timezone_message(self):
+        root = settings.ENHYDRIS_SYNOPTIC_ROOT
+        filename = os.path.join(root, "mygroup", "index.html")
+        with open(filename) as f:
+            output = f.read()
+        self.assertIn("All times are in Etc/GMT-1", output)
+
+
+@RandomSynopticRoot()
 class ChartTestCase(ClearCacheMixin, TestCase):
     @classmethod
     def setUpClass(cls):
