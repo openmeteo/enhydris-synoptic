@@ -8,6 +8,13 @@
   {% endblocktrans %}
 {% endblock %}
 
+{% block basecss %}
+  {{ block.super }}
+  <style>
+    header.page-header { position: absolute; };
+  </style>
+{% endblock %}
+
 {% block extracss %}
   {{ block.super }}
   <link type="text/css" rel="stylesheet" href="{% static 'css/vendor/leaflet.groupedlayercontrol.min.css' %}">
