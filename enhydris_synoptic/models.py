@@ -94,7 +94,7 @@ class EarlyWarningEmail(models.Model):
 
 class SynopticGroupStation(models.Model):
     synoptic_group = models.ForeignKey(SynopticGroup, on_delete=models.CASCADE)
-    station = models.ForeignKey(Station, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.SET_NULL, null=True)
     order = models.PositiveSmallIntegerField()
     timeseries_groups = models.ManyToManyField(
         TimeseriesGroup, through="SynopticTimeseriesGroup"
