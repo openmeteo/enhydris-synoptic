@@ -301,7 +301,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
             )
         )
         self.komboti_div_icon.wait_until_is_displayed()
-        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        date = self.komboti_div_icon.find_element(By.TAG_NAME, "span")
         self.assertEqual(date.get_attribute("class"), "date old")
 
     @freeze_time("2015-10-22 14:19:59")
@@ -313,7 +313,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
             )
         )
         self.komboti_div_icon.wait_until_is_displayed()
-        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        date = self.komboti_div_icon.find_element(By.TAG_NAME, "span")
         self.assertEqual(date.get_attribute("class"), "date recent")
 
     @freeze_time("2015-10-22 14:19:59")
@@ -325,7 +325,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
             )
         )
         self.komboti_div_icon.wait_until_is_displayed()
-        date = self.komboti_div_icon.find_element_by_tag_name("span")
+        date = self.komboti_div_icon.find_element(By.TAG_NAME, "span")
         self.assertEqual(date.text, "22 Oct 2015 14:20")
 
     def test_value_status(self):
@@ -342,17 +342,17 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
 
         # Rain should be ok
         self.layer_control_rain.click()
-        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        value = self.komboti_div_icon.find_elements(By.TAG_NAME, "span")[1]
         self.assertEqual(value.get_attribute("class"), "value ok")
 
         # Wind gust should be high
         self.layer_control_wind_gust.click()
-        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        value = self.komboti_div_icon.find_elements(By.TAG_NAME, "span")[1]
         self.assertEqual(value.get_attribute("class"), "value high")
 
         # Temperature should be low
         self.layer_control_temperature.click()
-        value = self.komboti_div_icon.find_elements_by_tag_name("span")[1]
+        value = self.komboti_div_icon.find_elements(By.TAG_NAME, "span")[1]
         self.assertEqual(value.get_attribute("class"), "value low")
 
     @override_settings(ENHYDRIS_SYNOPTIC_STATION_LINK_TARGET="/hello{station.id}world")
@@ -362,7 +362,7 @@ class MapTestCase(SeleniumTestCase, EarlyWarningTestMixin):
             f"{self.live_server_url}/static/synoptic/{self.data.sg1.slug}/index.html"
         )
         self.komboti_div_icon.wait_until_is_displayed()
-        a_element = self.komboti_div_icon.find_element_by_tag_name("a")
+        a_element = self.komboti_div_icon.find_element(By.TAG_NAME, "a")
         href = a_element.get_attribute("href")
         self.assertEqual(
             urlparse(href).path, f"/hello{self.data.station_komboti.id}world"
