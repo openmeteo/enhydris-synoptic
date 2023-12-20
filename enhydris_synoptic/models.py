@@ -172,9 +172,7 @@ class SynopticGroupStation(models.Model):
 
     def _set_tsg_value(self, asyntsg):
         try:
-            asyntsg.value = asyntsg.data.loc[
-                self.last_common_date.replace(tzinfo=None)
-            ]["value"]
+            asyntsg.value = asyntsg.data.loc[self.last_common_date]["value"]
         except KeyError:
             self.error = True
 
