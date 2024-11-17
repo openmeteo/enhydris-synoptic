@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import DataError, IntegrityError, models
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import iso8601
 from rocc import Threshold, rocc
